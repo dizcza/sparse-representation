@@ -70,8 +70,27 @@ def matching_pursuit(mat_a, b, n_iters=3, weak_threshold=1.):
     return Solution(x_solution, support, residuals_history)
 
 
-def describe(solution: Solution, method_info=''):
-    print(f"\nSolution ({method_info}): {solution.x}"
+def thresholding_algorithm(mat_a, b, n_iters=3):
+    assert n_iters <= mat_a.shape[1], "Does not make sense to use fast method and yet sweep through all columns"
+    norm = np.linalg.norm(mat_a, axis=0)
+    assert_array_almost_equal(norm, 1., err_msg="Input matrix should be L2 normalized (col)")
+    beta = np.abs(mat_a.T.dot(b))
+    atoms_sorted = np.argsort(beta)[::-1]
+    x_solution = np.zeros(shape=(mat_a.shape[1],), dtype=np.float32)
+    residuals_history = []
+
+    for iter_id in range(1, n_iters + 1):
+        support = atoms_sorted[:iter_id]
+        a_support = np.take(mat_a, support, axis=1)
+        a_inv = np.linalg.pinv(a_support)
+        x_solution[support] = a_inv.dot(b)
+        residuals = b - mat_a.dot(x_solution)
+        residuals_history.append(residuals)
+    return Solution(x_solution, atoms_sorted[:n_iters], residuals_history)
+
+
+def describe(solution: Solution, method_desc=''):
+    print(f"\n{method_desc} solution: {solution.x}"
           f"\n atoms chosen: {solution.support},"
           f"\n residuals norm: {list(map(np.linalg.norm, solution.residuals))},"
           f"\n residuals: \n{solution.residuals}")
@@ -88,10 +107,12 @@ def quiz5():
     print(f"sklearn solution: {x_sklearn}, residual norm: {np.linalg.norm(b - mat_a.dot(x_sklearn))}")
     for least_squares in (False, True):
         solution = orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs=n_nonzero_coefs, least_squares=least_squares)
-        describe(solution, method_info=f"least_squares={least_squares}")
+        describe(solution, method_desc="LS-OMP" if least_squares else "OMP")
         assert_array_almost_equal(x_sklearn, solution.x)
     solution_mp = matching_pursuit(mat_a, b, n_iters=n_nonzero_coefs, weak_threshold=0.5)
-    describe(solution_mp)
+    describe(solution_mp, method_desc="WMP(thr=0.5)")
+    solution_thr = thresholding_algorithm(mat_a, b, n_iters=3)
+    describe(solution_thr, method_desc="Thresholding")
 
 
 if __name__ == '__main__':
