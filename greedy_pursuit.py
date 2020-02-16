@@ -1,6 +1,10 @@
+from collections import namedtuple
+
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 from sklearn.linear_model import orthogonal_mp
+
+Solution = namedtuple("Solution", ("x", "support", "residuals"))
 
 
 def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs=3, least_squares=False):
@@ -38,7 +42,39 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs=3, least_squares=False
         support.append(atom)
         x_solution, residuals = update_step(x_solution, support)
         residuals_history.append(residuals)
-    return x_solution, support, residuals_history
+    return Solution(x_solution, support, residuals_history)
+
+
+def matching_pursuit(mat_a, b, n_iters=3, weak_threshold=1.):
+    norm = np.linalg.norm(mat_a, axis=0)
+    assert_array_almost_equal(norm, 1., err_msg="Input matrix should be L2 normalized (col)")
+    support = []
+    x_solution = np.zeros(shape=(mat_a.shape[1],), dtype=np.float32)
+    residuals = np.copy(b)
+    residuals_history = []
+
+    for iter_id in range(n_iters):
+        residuals_norm = np.linalg.norm(residuals)
+        errors_maximize = mat_a.T.dot(residuals)
+        if weak_threshold < 1:
+            # Weak Matching Pursuit
+            early_stop = np.nonzero(errors_maximize >= weak_threshold * residuals_norm)[0]
+            if len(early_stop) > 0:
+                early_stop = early_stop[0] + 1
+                errors_maximize = errors_maximize[:early_stop]
+        atom = errors_maximize.argmax()
+        support.append(atom)
+        x_solution[atom] += mat_a[:, atom].dot(residuals)
+        residuals = b - mat_a.dot(x_solution)
+        residuals_history.append(residuals)
+    return Solution(x_solution, support, residuals_history)
+
+
+def describe(solution: Solution, method_info=''):
+    print(f"\nSolution ({method_info}): {solution.x}"
+          f"\n atoms chosen: {solution.support},"
+          f"\n residuals norm: {list(map(np.linalg.norm, solution.residuals))},"
+          f"\n residuals: \n{solution.residuals}")
 
 
 def quiz5():
@@ -51,13 +87,11 @@ def quiz5():
     x_sklearn = orthogonal_mp(mat_a, b, n_nonzero_coefs=n_nonzero_coefs, return_path=False)
     print(f"sklearn solution: {x_sklearn}, residual norm: {np.linalg.norm(b - mat_a.dot(x_sklearn))}")
     for least_squares in (False, True):
-        x, support, res_hist = orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs=n_nonzero_coefs,
-                                                           least_squares=least_squares)
-        print(f"\nSolution (least_squares={least_squares}): {x}"
-              f"\n atoms chosen: {support},"
-              f"\n residuals norm: {list(map(np.linalg.norm, res_hist))},"
-              f"\n residuals: \n{res_hist}")
-        assert_array_almost_equal(x_sklearn, x)
+        solution = orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs=n_nonzero_coefs, least_squares=least_squares)
+        describe(solution, method_info=f"least_squares={least_squares}")
+        assert_array_almost_equal(x_sklearn, solution.x)
+    solution_mp = matching_pursuit(mat_a, b, n_iters=n_nonzero_coefs, weak_threshold=0.5)
+    describe(solution_mp)
 
 
 if __name__ == '__main__':
