@@ -34,7 +34,8 @@ def _trim_atoms(func):
 
 @_trim_atoms
 def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
-                                least_squares=False):
+                                least_squares=False,
+                                tol=1e-9):
     r"""
     Given the :math:`\text{P}_0` problem of a system of linear equations
 
@@ -66,6 +67,10 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
     least_squares : bool, optional
         Whether to use Least Squares OMP (True) or OMP (False) algorithm.
         Default is False (OMP).
+    tol : float, optional
+        The tolerance which determines when a solution is “close enough” to
+        the optimal solution. Compared with L2-norm of residuals (errors) at
+        each iteration.
 
     Returns
     -------
@@ -94,6 +99,9 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
         return x, residuals
 
     for iter_id in range(n_nonzero_coefs):
+        if np.linalg.norm(residuals) < tol:
+            # residuals is a zero vector
+            break
         if least_squares:
             # LS-OMP method
             errors = np.full_like(x_solution, np.inf)
@@ -116,7 +124,7 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
 
 
 @_trim_atoms
-def matching_pursuit(mat_a, b, n_iters, weak_threshold=1.):
+def matching_pursuit(mat_a, b, n_iters, weak_threshold=1., tol=1e-9):
     r"""
     (Weak) Matching Pursuit (MP, WMP) algorithm of finding an approximate
     sparsest solution :math:`\vec{x}_{\text{sparsest}}` of the system of
@@ -137,6 +145,10 @@ def matching_pursuit(mat_a, b, n_iters, weak_threshold=1.):
         A threshold in range (0, 1] for WMP algorithm that defines an early
         stop. If set to `1.`, MP algorithm is used.
         Default is 1. (MP).
+    tol : float, optional
+        The tolerance which determines when a solution is “close enough” to
+        the optimal solution. Compared with L2-norm of residuals (errors) at
+        each iteration.
 
     Returns
     -------
@@ -152,6 +164,8 @@ def matching_pursuit(mat_a, b, n_iters, weak_threshold=1.):
 
     for iter_id in range(n_iters):
         residuals_norm = np.linalg.norm(residuals)
+        if residuals_norm < tol:
+            break
         errors_maximize = mat_a.T.dot(residuals)
         if weak_threshold < 1:
             # Weak Matching Pursuit
