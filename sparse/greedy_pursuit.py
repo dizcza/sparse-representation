@@ -1,4 +1,5 @@
 from collections import namedtuple
+from functools import wraps
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal
@@ -13,16 +14,44 @@ def _check_l2_normalized(mat):
         norm, 1., err_msg="Input matrix should be L2 normalized (col)")
 
 
-def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs=3,
+def _trim_atoms(func):
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        solution = func(*args, **kwargs)
+        assert isinstance(solution, Solution)
+        # residuals' shape is (n_iters, x_dim)
+        residuals_norm = np.linalg.norm(solution.residuals, axis=1)
+        early_stop = residuals_norm.argmin() + 1
+        atoms = solution.support[: early_stop]
+        x = np.zeros_like(solution.x)
+        x[atoms] = solution.x[atoms]
+        residuals = solution.residuals[: early_stop]
+        solution = Solution(x, atoms, residuals)
+        return solution
+
+    return wrapped
+
+
+@_trim_atoms
+def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
                                 least_squares=False):
     r"""
-    Orthogonal Matching Pursuit (OMP) algorithm of finding an approximate
-    sparsest solution :math:`\vec{x}_{\text{sparsest}}` (with `n_nonzero_coefs`
-    non-zero real valued coefficients) of the system of linear equations:
+    Given the :math:`\text{P}_0` problem of a system of linear equations
 
     .. math::
         \min_x{ \| x \|_0} \quad \text{s.t.} \ \boldsymbol{A} \vec{x} = \vec{b}
+        :label: p0
+
+    orthogonal Matching Pursuit (OMP) algorithm finds an approximate sparsest
+    solution :math:`\vec{x}_{\text{sparsest}}` to :eq:`p0` by solving
+
+    .. math::
+        \min_x{ \|\vec{b} - \boldsymbol{A} \vec{x} \|_2^2} \quad \text{s.t.}
+        \ \|x\|_0 \le k
         :label: eq_constrained
+
+    where :math:`k` is the maximum number of non-zero real-valued coefficients
+    (atoms) of :math:`\vec{x}`.
 
     Parameters
     ----------
@@ -31,8 +60,9 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs=3,
         :eq:`eq_constrained`.
     b : (M,) np.ndarray
         The right side of the equation :eq:`eq_constrained`.
-    n_nonzero_coefs : int, optional
-        The number of non-zero coefficients in the solution :math:`\vec{x}`.
+    n_nonzero_coefs : int
+        :math:`k`, the maximum number of non-zero coefficients in
+        :math:`\vec{x}`.
     least_squares : bool, optional
         Whether to use Least Squares OMP (True) or OMP (False) algorithm.
         Default is False (OMP).
@@ -85,7 +115,8 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs=3,
     return Solution(x_solution, support, residuals_history)
 
 
-def matching_pursuit(mat_a, b, n_iters=3, weak_threshold=1.):
+@_trim_atoms
+def matching_pursuit(mat_a, b, n_iters, weak_threshold=1.):
     r"""
     (Weak) Matching Pursuit (MP, WMP) algorithm of finding an approximate
     sparsest solution :math:`\vec{x}_{\text{sparsest}}` of the system of
@@ -98,7 +129,7 @@ def matching_pursuit(mat_a, b, n_iters=3, weak_threshold=1.):
         :eq:`eq_constrained`.
     b : (M,) np.ndarray
         The right side of the equation :eq:`eq_constrained`.
-    n_iters : int, optional
+    n_iters : int
         The number of iterations to perform.
         The number of non-zero coefficients in the solution :math:`\vec{x}` is
         at most `n_iters`.
@@ -137,7 +168,8 @@ def matching_pursuit(mat_a, b, n_iters=3, weak_threshold=1.):
     return Solution(x_solution, support, residuals_history)
 
 
-def thresholding_algorithm(mat_a, b, n_iters=3):
+@_trim_atoms
+def thresholding_algorithm(mat_a, b, n_iters):
     r"""
     Thresholding algorithm of finding an approximate
     sparsest solution :math:`\vec{x}_{\text{sparsest}}` of the system of
@@ -152,7 +184,7 @@ def thresholding_algorithm(mat_a, b, n_iters=3):
         :eq:`eq_constrained`.
     b : (M,) np.ndarray
         The right side of the equation :eq:`eq_constrained`.
-    n_iters : int, optional
+    n_iters : int
         The number of iterations to perform.
         The number of non-zero coefficients in the solution :math:`\vec{x}` is
         at most `n_iters`.
@@ -183,7 +215,7 @@ def thresholding_algorithm(mat_a, b, n_iters=3):
 
 
 def _describe(solution: Solution, method_desc=''):
-    residuals_norm = list(map(np.linalg.norm, solution.residuals))
+    residuals_norm = np.linalg.norm(solution.residuals, axis=1)
     print(f"\n{method_desc} solution: {solution.x}"
           f"\n atoms chosen: {solution.support},"
           f"\n residuals norm: {residuals_norm},"
