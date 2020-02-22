@@ -1,3 +1,5 @@
 .idea/
 *.pyc
 doc/_build
+*.pdf
+*.doc*
