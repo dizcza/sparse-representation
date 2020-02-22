@@ -14,10 +14,11 @@ def mutual_coherence(mat):
     Parameters
     ----------
     mat : (M, N) np.ndarray
-        A weight matrix :math:`A` in the equation
+        A weight matrix :math:`\boldsymbol{A}` in the equation
 
         .. math::
-            A  \vec{x} = \vec{b}
+            \boldsymbol{A} \vec{x} = \vec{b}
+            :label: eq_unconstrained
 
 
     Returns
@@ -46,20 +47,14 @@ def babel(mat):
     Parameters
     ----------
     mat : (M, N) np.ndarray
-        A weight matrix :math:`A` in the equation
-
-        .. math::
-            A  \vec{x} = \vec{b}
-
+        A weight matrix :math:`\boldsymbol{A}` in the equation
+        :eq:`eq_unconstrained`.
 
     Returns
     -------
     CoherenceSpark
-        `CoherenceSpark` namedtuple with two keys:
-          `.coherence` - mutual coherence of `mat`;
-
-          `.spark` - spark lowerbound of `mat`.
-
+        A `namedtuple` with two attributes - `.coherence` and `.spark`.
+        Refer to :func:`mutual_coherence` for details.
     """
     mat = mat / np.linalg.norm(mat, axis=0)
     gram = np.abs(mat.T.dot(mat))

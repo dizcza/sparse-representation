@@ -7,9 +7,49 @@ from sklearn.linear_model import orthogonal_mp
 Solution = namedtuple("Solution", ("x", "support", "residuals"))
 
 
-def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs=3, least_squares=False):
-    norm = np.linalg.norm(mat_a, axis=0)
-    assert_array_almost_equal(norm, 1., err_msg="Input matrix should be L2 normalized (col)")
+def _check_l2_normalized(mat):
+    norm = np.linalg.norm(mat, axis=0)
+    assert_array_almost_equal(
+        norm, 1., err_msg="Input matrix should be L2 normalized (col)")
+
+
+def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs=3,
+                                least_squares=False):
+    r"""
+    Orthogonal Matching Pursuit (OMP) algorithm of finding an approximate
+    sparsest solution :math:`\vec{x}_{\text{sparsest}}` (with `n_nonzero_coefs`
+    non-zero real valued coefficients) of the system of linear equations:
+
+    .. math::
+        \min_x{ \| x \|_0} \quad \text{s.t.} \ \boldsymbol{A} \vec{x} = \vec{b}
+        :label: eq_constrained
+
+    Parameters
+    ----------
+    mat_a : (M, N) np.ndarray
+        A fixed weight matrix :math:`\boldsymbol{A}` in the equation
+        :eq:`eq_constrained`.
+    b : (M,) np.ndarray
+        The right side of the equation :eq:`eq_constrained`.
+    n_nonzero_coefs : int, optional
+        The number of non-zero coefficients in the solution :math:`\vec{x}`.
+    least_squares : bool, optional
+        Whether to use Least Squares OMP (True) or OMP (False) algorithm.
+        Default is False (OMP).
+
+    Returns
+    -------
+    Solution:
+        A `namedtuple` with the following attributes:
+            `.x` - :math:`\vec{x}_{\text{sparsest}}` solution of
+            :eq:`eq_constrained`
+
+            `.support` - a list of atoms (non-zero elements of :math:`\vec{x}`)
+
+            `.residuals` - a list of residual vectors after each iteration
+
+    """
+    _check_l2_normalized(mat_a)
     support = []
     x_solution = np.zeros(shape=(mat_a.shape[1],), dtype=np.float32)
     residuals = np.copy(b)
@@ -37,8 +77,8 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs=3, least_squares=False
             errors = -(mat_a.T.dot(residuals))
         atom = errors.argmin()
 
-        # each atom should be taken only once by design of the algorithm ('orthogonal')
-        assert atom not in support
+        assert atom not in support, "Each atom should be taken only once by " \
+                                    "design of the algorithm ('orthogonal')."
         support.append(atom)
         x_solution, residuals = update_step(x_solution, support)
         residuals_history.append(residuals)
@@ -46,8 +86,34 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs=3, least_squares=False
 
 
 def matching_pursuit(mat_a, b, n_iters=3, weak_threshold=1.):
-    norm = np.linalg.norm(mat_a, axis=0)
-    assert_array_almost_equal(norm, 1., err_msg="Input matrix should be L2 normalized (col)")
+    r"""
+    (Weak) Matching Pursuit (MP, WMP) algorithm of finding an approximate
+    sparsest solution :math:`\vec{x}_{\text{sparsest}}` of the system of
+    linear equations :eq:`eq_constrained`.
+
+    Parameters
+    ----------
+    mat_a : (M, N) np.ndarray
+        A fixed weight matrix :math:`\boldsymbol{A}` in the equation
+        :eq:`eq_constrained`.
+    b : (M,) np.ndarray
+        The right side of the equation :eq:`eq_constrained`.
+    n_iters : int, optional
+        The number of iterations to perform.
+        The number of non-zero coefficients in the solution :math:`\vec{x}` is
+        at most `n_iters`.
+    weak_threshold : float, optional
+        A threshold in range (0, 1] for WMP algorithm that defines an early
+        stop. If set to `1.`, MP algorithm is used.
+        Default is 1. (MP).
+
+    Returns
+    -------
+    Solution:
+        The solution of :eq:`eq_constrained`. Refer to the output
+        documentation of :func:`orthogonal_matching_pursuit`.
+    """
+    _check_l2_normalized(mat_a)
     support = []
     x_solution = np.zeros(shape=(mat_a.shape[1],), dtype=np.float32)
     residuals = np.copy(b)
@@ -58,7 +124,8 @@ def matching_pursuit(mat_a, b, n_iters=3, weak_threshold=1.):
         errors_maximize = mat_a.T.dot(residuals)
         if weak_threshold < 1:
             # Weak Matching Pursuit
-            early_stop = np.nonzero(errors_maximize >= weak_threshold * residuals_norm)[0]
+            early_stop = np.nonzero(
+                errors_maximize >= weak_threshold * residuals_norm)[0]
             if len(early_stop) > 0:
                 early_stop = early_stop[0] + 1
                 errors_maximize = errors_maximize[:early_stop]
@@ -71,9 +138,35 @@ def matching_pursuit(mat_a, b, n_iters=3, weak_threshold=1.):
 
 
 def thresholding_algorithm(mat_a, b, n_iters=3):
-    assert n_iters <= mat_a.shape[1], "Does not make sense to use fast method and yet sweep through all columns"
-    norm = np.linalg.norm(mat_a, axis=0)
-    assert_array_almost_equal(norm, 1., err_msg="Input matrix should be L2 normalized (col)")
+    r"""
+    Thresholding algorithm of finding an approximate
+    sparsest solution :math:`\vec{x}_{\text{sparsest}}` of the system of
+    linear equations :eq:`eq_constrained`. It's the fastest and least accurate
+    algorithm among others, defined in this module. Its approximation is
+    reasonable for very sparse solutions (`n_iters << dim(X)`).
+
+    Parameters
+    ----------
+    mat_a : (M, N) np.ndarray
+        A fixed weight matrix :math:`\boldsymbol{A}` in the equation
+        :eq:`eq_constrained`.
+    b : (M,) np.ndarray
+        The right side of the equation :eq:`eq_constrained`.
+    n_iters : int, optional
+        The number of iterations to perform.
+        The number of non-zero coefficients in the solution :math:`\vec{x}` is
+        at most `n_iters`.
+
+    Returns
+    -------
+    Solution:
+        The solution of :eq:`eq_constrained`. Refer to the output
+        documentation of :func:`orthogonal_matching_pursuit`.
+    """
+    assert n_iters <= mat_a.shape[1], \
+        "Does not make sense to use fast method and yet sweep through all " \
+        "columns. Use any other algorithm."
+    _check_l2_normalized(mat_a)
     beta = np.abs(mat_a.T.dot(b))
     atoms_sorted = np.argsort(beta)[::-1]
     x_solution = np.zeros(shape=(mat_a.shape[1],), dtype=np.float32)
@@ -89,31 +182,38 @@ def thresholding_algorithm(mat_a, b, n_iters=3):
     return Solution(x_solution, atoms_sorted[:n_iters], residuals_history)
 
 
-def describe(solution: Solution, method_desc=''):
+def _describe(solution: Solution, method_desc=''):
+    residuals_norm = list(map(np.linalg.norm, solution.residuals))
     print(f"\n{method_desc} solution: {solution.x}"
           f"\n atoms chosen: {solution.support},"
-          f"\n residuals norm: {list(map(np.linalg.norm, solution.residuals))},"
+          f"\n residuals norm: {residuals_norm},"
           f"\n residuals: \n{solution.residuals}")
 
 
-def quiz5():
-    mat_a = [0.1817, 0.5394, -0.1197, 0.6404, 0.6198, 0.1994, 0.0946, -0.3121, -0.7634, -0.8181, 0.9883, 0.7018]
+def _quiz5():
+    mat_a = [0.1817, 0.5394, -0.1197, 0.6404, 0.6198, 0.1994, 0.0946, -0.3121,
+             -0.7634, -0.8181, 0.9883, 0.7018]
     mat_a = np.reshape(mat_a, (3, 4))
     mat_a /= np.linalg.norm(mat_a, axis=0)
     b = np.array([1.1862, -0.1158, -0.1093])
     n_nonzero_coefs = 2
 
-    x_sklearn = orthogonal_mp(mat_a, b, n_nonzero_coefs=n_nonzero_coefs, return_path=False)
-    print(f"sklearn solution: {x_sklearn}, residual norm: {np.linalg.norm(b - mat_a.dot(x_sklearn))}")
+    x_sklearn = orthogonal_mp(mat_a, b, n_nonzero_coefs=n_nonzero_coefs,
+                              return_path=False)
+    print(f"sklearn solution: {x_sklearn}, "
+          f"residual norm: {np.linalg.norm(b - mat_a.dot(x_sklearn))}")
     for least_squares in (False, True):
-        solution = orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs=n_nonzero_coefs, least_squares=least_squares)
-        describe(solution, method_desc="LS-OMP" if least_squares else "OMP")
+        solution = orthogonal_matching_pursuit(mat_a, b,
+                                               n_nonzero_coefs=n_nonzero_coefs,
+                                               least_squares=least_squares)
+        _describe(solution, method_desc="LS-OMP" if least_squares else "OMP")
         assert_array_almost_equal(x_sklearn, solution.x)
-    solution_mp = matching_pursuit(mat_a, b, n_iters=n_nonzero_coefs, weak_threshold=0.5)
-    describe(solution_mp, method_desc="WMP(thr=0.5)")
+    solution_mp = matching_pursuit(mat_a, b, n_iters=n_nonzero_coefs,
+                                   weak_threshold=0.5)
+    _describe(solution_mp, method_desc="WMP(thr=0.5)")
     solution_thr = thresholding_algorithm(mat_a, b, n_iters=3)
-    describe(solution_thr, method_desc="Thresholding")
+    _describe(solution_thr, method_desc="Thresholding")
 
 
 if __name__ == '__main__':
-    quiz5()
+    _quiz5()
