@@ -22,6 +22,10 @@ def _trim_atoms(func):
         # residuals' shape is (n_iters, x_dim)
         residuals_norm = np.linalg.norm(solution.residuals, axis=1)
         early_stop = residuals_norm.argmin() + 1
+        # If the algorithm is MP or WMP (func is matching_pursuit),
+        # the same atom might appear more than once. But it does not break
+        # the logic since the expression
+        # x[[..., i,i]] = solution.x[[..., i,i]] preserves the valid atoms.
         atoms = solution.support[: early_stop]
         x = np.zeros_like(solution.x)
         x[atoms] = solution.x[atoms]
@@ -65,7 +69,8 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
         :math:`k`, the maximum number of non-zero coefficients in
         :math:`\vec{x}`.
     least_squares : bool, optional
-        Whether to use Least Squares OMP (True) or OMP (False) algorithm.
+        If set to True, uses Least Squares OMP (LS-OMP) method instead of OMP
+        (False).
         Default is False (OMP).
     tol : float, optional
         The tolerance which determines when a solution is “close enough” to
@@ -83,10 +88,24 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
 
             `.residuals` - a list of residual vectors after each iteration
 
+    Notes
+    -----
+    If the true unknown :math:`\vec{x}_{\text{true}}` to be found is sparse
+    enough,
+
+    .. math::
+        \|\vec{x}_{\text{true}}\|_0 = s < \frac{1}{2} \left( 1 +
+        \frac{1}{\mu\{ \boldsymbol{A} \}} \right)
+        :label: sparseness_cond
+
+    where :math:`\mu\{ \boldsymbol{A} \}` is the mutual coherence of the input
+    matrix `mat_a` (see :func:`sparse.coherence.mutual_coherence`),
+    then WMP, MP, OMP, and LS-OMP are guaranteed to find it.
+
     """
     _check_l2_normalized(mat_a)
     support = []
-    x_solution = np.zeros(shape=(mat_a.shape[1],), dtype=np.float32)
+    x_solution = np.zeros(shape=mat_a.shape[1], dtype=np.float32)
     residuals = np.copy(b)
     residuals_history = []
 
@@ -155,10 +174,16 @@ def matching_pursuit(mat_a, b, n_iters, weak_threshold=1., tol=1e-9):
     Solution:
         The solution of :eq:`eq_constrained`. Refer to the output
         documentation of :func:`orthogonal_matching_pursuit`.
+
+    Notes
+    -----
+    If the sparseness condition :eq:`sparseness_cond` is satisfied,
+    the true unknown solution is recovered.
+
     """
     _check_l2_normalized(mat_a)
     support = []
-    x_solution = np.zeros(shape=(mat_a.shape[1],), dtype=np.float32)
+    x_solution = np.zeros(shape=mat_a.shape[1], dtype=np.float32)
     residuals = np.copy(b)
     residuals_history = []
 
@@ -183,13 +208,11 @@ def matching_pursuit(mat_a, b, n_iters, weak_threshold=1., tol=1e-9):
 
 
 @_trim_atoms
-def thresholding_algorithm(mat_a, b, n_iters):
+def thresholding_algorithm(mat_a, b, n_nonzero_coefs):
     r"""
     Thresholding algorithm of finding an approximate
     sparsest solution :math:`\vec{x}_{\text{sparsest}}` of the system of
-    linear equations :eq:`eq_constrained`. It's the fastest and least accurate
-    algorithm among others, defined in this module. Its approximation is
-    reasonable for very sparse solutions (`n_iters << dim(X)`).
+    linear equations :eq:`eq_constrained`.
 
     Parameters
     ----------
@@ -198,34 +221,50 @@ def thresholding_algorithm(mat_a, b, n_iters):
         :eq:`eq_constrained`.
     b : (M,) np.ndarray
         The right side of the equation :eq:`eq_constrained`.
-    n_iters : int
-        The number of iterations to perform.
-        The number of non-zero coefficients in the solution :math:`\vec{x}` is
-        at most `n_iters`.
+    n_nonzero_coefs : int
+        :math:`k`, the maximum number of non-zero coefficients in
+        :math:`\vec{x}`.
 
     Returns
     -------
     Solution:
         The solution of :eq:`eq_constrained`. Refer to the output
         documentation of :func:`orthogonal_matching_pursuit`.
+
+    Notes
+    -----
+    If the true unknown :math:`\vec{x}_{\text{true}}` to be found is sparse
+    enough,
+
+    .. math::
+        \|\vec{x}_{\text{true}}\|_0 = s < \frac{1}{2} \left( 1 +
+        \frac{\mid x_{min} \mid}{\mid x_{max} \mid} \cdot
+        \frac{1}{\mu\{ \boldsymbol{A} \}} \right)
+        :label: sparseness_cond_thr
+
+    where :math:`\mu\{ \boldsymbol{A} \}` is the mutual coherence of the input
+    matrix `mat_a` (see :func:`sparse.coherence.mutual_coherence`),
+    then the Thresholding algorithm is guaranteed to find it.
+
     """
-    assert n_iters <= mat_a.shape[1], \
+    assert n_nonzero_coefs <= mat_a.shape[1], \
         "Does not make sense to use fast method and yet sweep through all " \
         "columns. Use any other algorithm."
     _check_l2_normalized(mat_a)
     beta = np.abs(mat_a.T.dot(b))
     atoms_sorted = np.argsort(beta)[::-1]
-    x_solution = np.zeros(shape=(mat_a.shape[1],), dtype=np.float32)
+    x_solution = np.zeros(shape=mat_a.shape[1], dtype=np.float32)
     residuals_history = []
 
-    for iter_id in range(1, n_iters + 1):
+    for iter_id in range(1, n_nonzero_coefs + 1):
         support = atoms_sorted[:iter_id]
         a_support = np.take(mat_a, support, axis=1)
         a_inv = np.linalg.pinv(a_support)
         x_solution[support] = a_inv.dot(b)
         residuals = b - mat_a.dot(x_solution)
         residuals_history.append(residuals)
-    return Solution(x_solution, atoms_sorted[:n_iters], residuals_history)
+    support = atoms_sorted[:n_nonzero_coefs]
+    return Solution(x_solution, support, residuals_history)
 
 
 def _describe(solution: Solution, method_desc=''):
@@ -257,7 +296,7 @@ def _quiz5():
     solution_mp = matching_pursuit(mat_a, b, n_iters=n_nonzero_coefs,
                                    weak_threshold=0.5)
     _describe(solution_mp, method_desc="WMP(thr=0.5)")
-    solution_thr = thresholding_algorithm(mat_a, b, n_iters=3)
+    solution_thr = thresholding_algorithm(mat_a, b, n_nonzero_coefs=3)
     _describe(solution_thr, method_desc="Thresholding")
 
 
