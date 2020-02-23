@@ -60,7 +60,7 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
 
     Parameters
     ----------
-    mat_a : (M, N) np.ndarray
+    mat_a : (N, M) np.ndarray
         A fixed weight matrix :math:`\boldsymbol{A}` in the equation
         :eq:`eq_constrained`.
     b : (M,) np.ndarray
@@ -151,7 +151,7 @@ def matching_pursuit(mat_a, b, n_iters, weak_threshold=1., tol=1e-9):
 
     Parameters
     ----------
-    mat_a : (M, N) np.ndarray
+    mat_a : (N, M) np.ndarray
         A fixed weight matrix :math:`\boldsymbol{A}` in the equation
         :eq:`eq_constrained`.
     b : (M,) np.ndarray
@@ -216,7 +216,7 @@ def thresholding_algorithm(mat_a, b, n_nonzero_coefs):
 
     Parameters
     ----------
-    mat_a : (M, N) np.ndarray
+    mat_a : (N, M) np.ndarray
         A fixed weight matrix :math:`\boldsymbol{A}` in the equation
         :eq:`eq_constrained`.
     b : (M,) np.ndarray

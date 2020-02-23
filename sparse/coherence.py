@@ -8,26 +8,35 @@ CoherenceSpark = namedtuple("CoherenceSpark", ("coherence", "spark"))
 
 def mutual_coherence(mat):
     r"""
-    Calculates the mutual coherence and the Spark of the matrix `mat` as the
-    maximum element of its normalized Gram matrix.
+    For an arbitrary input matrix :math:`\boldsymbol{A}` of size `N` x `M`, the
+    mutual coherence is the maximal absolute inner-product between its
+    normalized columns :math:`\{ a_i \mid i=1,2,...,M \}`:
+
+    .. math::
+        \mu (\boldsymbol{A}) = \max_{1 \le i < j \le M}
+        \frac{\mid a_i^\top a_j \mid}{\|a_i\|_2 \|a_j\|_2}
+        :label: coh
+
+    The mutual coherence :math:`\mu` lies in range `[0, 1]`.
+
+    At the same time, the Spark lower bound of a matrix is estimated as
+
+    .. math::
+        \text{Spark}(\boldsymbol{A}) \ge 1 + \frac{1}{\mu(\boldsymbol{A})}
+        :label: spark
 
     Parameters
     ----------
-    mat : (M, N) np.ndarray
-        A weight matrix :math:`\boldsymbol{A}` in the equation
-
-        .. math::
-            \boldsymbol{A} \vec{x} = \vec{b}
-            :label: eq_unconstrained
-
+    mat : (N, M) np.ndarray
+        Matrix :math:`\boldsymbol{A}` in :eq:`coh`.
 
     Returns
     -------
     CoherenceSpark
-        `CoherenceSpark` namedtuple with two keys:
+        A namedtuple with two attributes:
           `.coherence` - mutual coherence of `mat`;
 
-          `.spark` - spark lowerbound of `mat`.
+          `.spark` - Spark lower bound :eq:`spark` of `mat`.
 
     """
     mat = mat / np.linalg.norm(mat, axis=0)
@@ -40,21 +49,42 @@ def mutual_coherence(mat):
 
 def babel(mat):
     r"""
-    Calculates the Babel Function and the Spark of the matrix `mat`. The Babel
-    Function gives a tighter bound on estimation of the Spark of a matrix than
-    :func:`mutual_coherence`.
+    For an arbitrary input matrix :math:`\boldsymbol{A}` of size `N` x `M` and
+    normalized columns :math:`\{ a_i \mid i=1,2,...,M \}`, the Babel-Function
+    is defined by
+
+    .. math::
+        \mu_1(k) = \max_{\mid \Lambda \mid = k} \left[ \max_{j \notin \Lambda}
+        \sum_{i \in \Lambda}{\mid a_i^\top a_j \mid} \right]
+        :label: babel
+
+    If :math:`\mu_1(k-1) < 1`, this implies that any set of :math:`k` columns
+    from :math:`\boldsymbol{A}` are linearly dependent. In this case, the Spark
+    necessarily satisfies
+
+    .. math::
+        \text{Spark}(\boldsymbol{A}) > k = 1 + \arg \min_k
+        \left({\mu_1(k) > 1}\right)
+        :label: spark_babel
 
     Parameters
     ----------
-    mat : (M, N) np.ndarray
-        A weight matrix :math:`\boldsymbol{A}` in the equation
-        :eq:`eq_unconstrained`.
+    mat : (N, M) np.ndarray
+        Matrix :math:`\boldsymbol{A}` in :eq:`babel`.
 
     Returns
     -------
     CoherenceSpark
-        A `namedtuple` with two attributes - `.coherence` and `.spark`.
-        Refer to :func:`mutual_coherence` for details.
+        A `namedtuple` with two attributes:
+          `.coherence` - a list of `M-1` elements of
+          :math:`\mu_1(k), \ k=1,2,...,M-1`;
+
+          `.spark` - Spark lower bound :eq:`spark_babel` of `mat`.
+
+    Notes
+    -----
+    :eq:`spark_babel` is a tighter bound on Spark than :eq:`spark`.
+
     """
     mat = mat / np.linalg.norm(mat, axis=0)
     gram = np.abs(mat.T.dot(mat))
@@ -65,7 +95,7 @@ def babel(mat):
     gram = gram[:, 1:]  # skip the first column of 1s (diagonal elements)
     gram = gram.cumsum(axis=1)  # cumsum rows
     mu1 = gram.max(axis=0)
-    spark = np.where(mu1 > 1)[0][0] + 2
+    spark = np.nonzero(mu1 > 1)[0][0] + 2
     return CoherenceSpark(mu1, spark)
 
 
