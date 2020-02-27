@@ -103,7 +103,8 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
     then WMP, MP, OMP, and LS-OMP are guaranteed to find it.
 
     """
-    _check_l2_normalized(mat_a)
+    # column norms of matrix A
+    mat_a_norms = np.linalg.norm(mat_a, axis=0)
     support = []
     x_solution = np.zeros(shape=mat_a.shape[1], dtype=np.float32)
     residuals = np.copy(b)
@@ -130,8 +131,12 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
                 _, residuals = update_step(x_cand, support_cand)
                 errors[col_id] = np.linalg.norm(residuals)
         else:
-            # OMP method
-            errors = -(mat_a.T.dot(residuals))
+            # OMP method:
+            # min_ai  ||r_i||^2 - (a_i @ r_i / ||a_i||)^2
+            # for each atom a_i is equivalent to
+            # max_ai  a_i @ r_i / ||a_i||
+            errors = mat_a.T.dot(residuals) / mat_a_norms
+            errors = -errors
         atom = errors.argmin()
 
         assert atom not in support, "Each atom should be taken only once by " \
