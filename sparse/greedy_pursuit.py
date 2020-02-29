@@ -33,7 +33,7 @@ def _trim_atoms(func):
 @_trim_atoms
 def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
                                 least_squares=False,
-                                tol=1e-9):
+                                tol=1e-6):
     r"""
     Given the :math:`\text{P}_0` problem of a system of linear equations
 

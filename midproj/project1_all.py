@@ -1,12 +1,18 @@
 # In this project we demonstrate the OMP and BP algorithms, by running them 
 # on a set of signals and checking whether they provide the desired outcome
-import numpy as np
-from midproj.omp import omp
-from midproj.lp import lp
+from pathlib import Path
+
 import matplotlib.pyplot as plt
+import numpy as np
 from tqdm import trange
 
+from midproj.lp import lp
+from midproj.omp import omp
+
 # %% Parameters
+
+REPORT_DIR = Path(__file__).parent / "report"
+REPORT_DIR.mkdir(exist_ok=True)
 
 # Set the length of the signal
 n_signal = 50
@@ -15,7 +21,7 @@ n_signal = 50
 m_atoms = 100
 
 # Set the maximum number of non-zeros in the generated vector
-s_max = 15
+s_max = 20
 
 # Set the minimal entry value
 min_coeff_val = -1.
@@ -32,7 +38,7 @@ base_seed = 28
 # %% Create the dictionary
 
 # Create a random matrix A of size (n x m)
-A = np.random.randn(n_signal, m_atoms)
+A = np.random.randn(n_signal, m_atoms).astype(np.float32)
 
 # Normalize the columns of the matrix to have a unit norm
 A_normalized = A / np.linalg.norm(A, axis=0)
@@ -45,9 +51,9 @@ eps_coeff = 1e-4
 tol_lp = 1e-4
 
 # Allocate a matrix to save the L2 error of the obtained solutions
-L2_error = np.zeros((s_max, num_realizations, 2))
+L2_error = np.zeros((s_max, num_realizations, 2), dtype=np.float32)
 # Allocate a matrix to save the support recovery score
-support_error = np.zeros((s_max, num_realizations, 2))
+support_error = np.zeros((s_max, num_realizations, 2), dtype=np.float32)
 
 # Loop over the sparsity level
 for s in trange(s_max, desc="Loop over the sparsity level"):
@@ -66,7 +72,7 @@ for s in trange(s_max, desc="Loop over the sparsity level"):
         x = np.zeros(m_atoms, dtype=np.float32)
 
         # Draw at random a true_supp vector
-        true_supp = np.random.random_sample(size=s)
+        true_supp = np.random.random_sample(size=s).astype(np.float32)
 
         # Draw at random the coefficients of x in true_supp locations
         nonzero_ids = np.random.randint(low=0, high=m_atoms, size=s)
@@ -122,6 +128,7 @@ plt.xlabel('Cardinality of the true solution')
 plt.ylabel('Average and Relative L2-Error')
 plt.axis((0, s_max, 0, 1))
 plt.legend(['OMP', 'LP'])
+plt.savefig(REPORT_DIR / "L2-error.png")
 plt.show()
 
 # Plot the average support recovery score, obtained by the OMP and BP versus
@@ -135,4 +142,5 @@ plt.xlabel('Cardinality of the true solution')
 plt.ylabel('Probability of Error in Support')
 plt.axis((0, s_max, 0, 1))
 plt.legend(['OMP', 'LP'])
+plt.savefig(REPORT_DIR / "support-error.png")
 plt.show()
