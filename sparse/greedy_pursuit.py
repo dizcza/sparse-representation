@@ -8,12 +8,6 @@ from sklearn.linear_model import orthogonal_mp
 Solution = namedtuple("Solution", ("x", "support", "residuals"))
 
 
-def _check_l2_normalized(mat):
-    norm = np.linalg.norm(mat, axis=0)
-    assert_array_almost_equal(
-        norm, 1., err_msg="Input matrix should be L2 normalized (col)")
-
-
 def _trim_atoms(func):
     @wraps(func)
     def wrapped(*args, **kwargs):
@@ -105,6 +99,7 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
     """
     # column norms of matrix A
     mat_a_norms = np.linalg.norm(mat_a, axis=0)
+    mat_a = mat_a / mat_a_norms
     support = []
     x_solution = np.zeros(shape=mat_a.shape[1], dtype=np.float32)
     residuals = np.copy(b)
@@ -135,7 +130,8 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
             # min_ai  ||r_i||^2 - (a_i @ r_i / ||a_i||)^2
             # for each atom a_i is equivalent to
             # max_ai  a_i @ r_i / ||a_i||
-            errors = mat_a.T.dot(residuals) / mat_a_norms
+            # ||a_i|| == 1 since we normalize matrix A
+            errors = mat_a.T.dot(residuals)
             errors = -errors
         atom = errors.argmin()
 
@@ -144,6 +140,7 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
         support.append(atom)
         x_solution, residuals = update_step(x_solution, support)
         residuals_history.append(residuals)
+    x_solution /= mat_a_norms
     return Solution(x_solution, support, residuals_history)
 
 
@@ -186,7 +183,8 @@ def matching_pursuit(mat_a, b, n_iters, weak_threshold=1., tol=1e-9):
     the true unknown solution is recovered.
 
     """
-    _check_l2_normalized(mat_a)
+    mat_a_norms = np.linalg.norm(mat_a, axis=0)
+    mat_a = mat_a / mat_a_norms
     support = []
     x_solution = np.zeros(shape=mat_a.shape[1], dtype=np.float32)
     residuals = np.copy(b)
@@ -209,6 +207,7 @@ def matching_pursuit(mat_a, b, n_iters, weak_threshold=1., tol=1e-9):
         x_solution[atom] += mat_a[:, atom].dot(residuals)
         residuals = b - mat_a.dot(x_solution)
         residuals_history.append(residuals)
+    x_solution /= mat_a_norms
     return Solution(x_solution, support, residuals_history)
 
 
@@ -255,7 +254,8 @@ def thresholding_algorithm(mat_a, b, n_nonzero_coefs):
     assert n_nonzero_coefs <= mat_a.shape[1], \
         "Does not make sense to use fast method and yet sweep through all " \
         "columns. Use any other algorithm."
-    _check_l2_normalized(mat_a)
+    mat_a_norms = np.linalg.norm(mat_a, axis=0)
+    mat_a = mat_a / mat_a_norms
     beta = np.abs(mat_a.T.dot(b))
     atoms_sorted = np.argsort(beta)[::-1]
     x_solution = np.zeros(shape=mat_a.shape[1], dtype=np.float32)
@@ -269,6 +269,7 @@ def thresholding_algorithm(mat_a, b, n_nonzero_coefs):
         residuals = b - mat_a.dot(x_solution)
         residuals_history.append(residuals)
     support = atoms_sorted[:n_nonzero_coefs]
+    x_solution /= mat_a_norms
     return Solution(x_solution, support, residuals_history)
 
 
