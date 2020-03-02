@@ -47,7 +47,7 @@ def mutual_coherence(mat):
     Parameters
     ----------
     mat : (N, M) np.ndarray
-        Matrix :math:`\boldsymbol{A}` in :eq:`coh`.
+        The input matrix :math:`\boldsymbol{A}`.
 
     Returns
     -------
@@ -89,7 +89,7 @@ def babel(mat):
     Parameters
     ----------
     mat : (N, M) np.ndarray
-        Matrix :math:`\boldsymbol{A}` in :eq:`babel`.
+        The input matrix :math:`\boldsymbol{A}`.
 
     Returns
     -------

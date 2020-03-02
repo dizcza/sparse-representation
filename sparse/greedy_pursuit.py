@@ -81,8 +81,7 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
     Parameters
     ----------
     mat_a : (N, M) np.ndarray
-        A fixed weight matrix :math:`\boldsymbol{A}` in the equation
-        :eq:`p0_approx`.
+        The input weight matrix :math:`\boldsymbol{A}`.
     b : (N,) np.ndarray
         The right side of the equation :eq:`p0_approx`.
     n_nonzero_coefs : int
@@ -174,8 +173,7 @@ def matching_pursuit(mat_a, b, n_iters, weak_threshold=1., tol=1e-9):
     Parameters
     ----------
     mat_a : (N, M) np.ndarray
-        A fixed weight matrix :math:`\boldsymbol{A}` in the equation
-        :eq:`p0_approx`.
+        The input weight matrix :math:`\boldsymbol{A}`.
     b : (N,) np.ndarray
         The right side of the equation :eq:`p0_approx`.
     n_iters : int
@@ -183,7 +181,7 @@ def matching_pursuit(mat_a, b, n_iters, weak_threshold=1., tol=1e-9):
         The number of non-zero coefficients in the solution :math:`\vec{x}` is
         at most `n_iters`.
     weak_threshold : float, optional
-        A threshold in range (0, 1] for WMP algorithm that defines an early
+        A threshold in range `(0, 1]` for WMP algorithm that defines an early
         stop. If set to `1.`, MP algorithm is used.
         Default is 1. (MP).
     tol : float, optional
@@ -239,8 +237,7 @@ def thresholding_algorithm(mat_a, b, n_nonzero_coefs):
     Parameters
     ----------
     mat_a : (N, M) np.ndarray
-        A fixed weight matrix :math:`\boldsymbol{A}` in the equation
-        :eq:`p0_approx`.
+        The input weight matrix :math:`\boldsymbol{A}`.
     b : (N,) np.ndarray
         The right side of the equation :eq:`p0_approx`.
     n_nonzero_coefs : int
