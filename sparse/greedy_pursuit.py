@@ -18,7 +18,7 @@ where :math:`k` is the maximum number of non-zero real-valued coefficients
 Each algorithm returns a `Solution` which is a namedtuple with the following
 attributes:
 
-    `.x` - :math:`\vec{x}_{\text{sparsest}}` solution of :eq:`p0_approx`
+    `.x` - :math:`\vec{x}_{\text{sparsest}}` solution to :eq:`p0_approx`
 
     `.support` - a list of atoms (non-zero elements of :math:`\vec{x}`)
 
@@ -83,7 +83,7 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
     mat_a : (N, M) np.ndarray
         A fixed weight matrix :math:`\boldsymbol{A}` in the equation
         :eq:`p0_approx`.
-    b : (M,) np.ndarray
+    b : (N,) np.ndarray
         The right side of the equation :eq:`p0_approx`.
     n_nonzero_coefs : int
         :math:`k`, the maximum number of non-zero coefficients in
@@ -176,7 +176,7 @@ def matching_pursuit(mat_a, b, n_iters, weak_threshold=1., tol=1e-9):
     mat_a : (N, M) np.ndarray
         A fixed weight matrix :math:`\boldsymbol{A}` in the equation
         :eq:`p0_approx`.
-    b : (M,) np.ndarray
+    b : (N,) np.ndarray
         The right side of the equation :eq:`p0_approx`.
     n_iters : int
         The number of iterations to perform.
@@ -241,7 +241,7 @@ def thresholding_algorithm(mat_a, b, n_nonzero_coefs):
     mat_a : (N, M) np.ndarray
         A fixed weight matrix :math:`\boldsymbol{A}` in the equation
         :eq:`p0_approx`.
-    b : (M,) np.ndarray
+    b : (N,) np.ndarray
         The right side of the equation :eq:`p0_approx`.
     n_nonzero_coefs : int
         :math:`k`, the maximum number of non-zero coefficients in

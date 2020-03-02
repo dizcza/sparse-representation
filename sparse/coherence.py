@@ -1,7 +1,7 @@
 r"""
 Mutual Coherence and Babel Function are the properties of a matrix, used to
 estimate the Spark of a matrix, which in turn is used to determine the
-optimality of the solution of :math:`\text{P}_0` problem.
+optimality of the solution to :math:`\text{P}_0` problem.
 
 Babel Function gives a tighter bound on the Spark of a matrix.
 
