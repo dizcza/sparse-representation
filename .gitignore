@@ -1,6 +1,7 @@
 .idea/
 *.pyc
 doc/_build
+doc/reference/toctree/
 dist/
 sparse.egg-info/
 

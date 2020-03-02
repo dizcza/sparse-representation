@@ -1,3 +1,22 @@
+r"""
+Mutual Coherence and Babel Function are the properties of a matrix, used to
+estimate the Spark of a matrix, which in turn is used to determine the
+optimality of the solution of :math:`\text{P}_0` problem.
+
+Babel Function gives a tighter bound on the Spark of a matrix.
+
+Spark of a matrix :math:`\boldsymbol{A}` is the size of the smallest subset of
+linearly dependent columns of :math:`\boldsymbol{A}`.
+
+.. currentmodule:: sparse.coherence
+
+.. autosummary::
+   :toctree: toctree/coherence/
+
+   mutual_coherence
+   babel
+
+"""
 import math
 from collections import namedtuple
 

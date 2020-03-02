@@ -1,3 +1,41 @@
+r"""
+Greedy Pursuit algorithms solve an approximate problem
+
+.. math::
+    \min_x{ \|\vec{b} - \boldsymbol{A} \vec{x} \|_2^2} \quad \text{s.t.}
+    \ \|x\|_0 \le k
+    :label: p0_approx
+
+of :math:`\text{P}_0` problem of a system of linear equations
+
+.. math::
+    \min_x{ \| x \|_0} \quad \text{s.t.} \ \boldsymbol{A} \vec{x} = \vec{b}
+    :label: p0
+
+where :math:`k` is the maximum number of non-zero real-valued coefficients
+(atoms) of :math:`\vec{x}`.
+
+Each algorithm returns a `Solution` which is a namedtuple with the following
+attributes:
+
+    `.x` - :math:`\vec{x}_{\text{sparsest}}` solution of :eq:`p0_approx`
+
+    `.support` - a list of atoms (non-zero elements of :math:`\vec{x}`)
+
+    `.residuals` - a list of residual vectors after each iteration
+
+
+.. currentmodule:: sparse.greedy_pursuit
+
+.. autosummary::
+   :toctree: toctree/greedy_pursuit/
+
+   orthogonal_matching_pursuit
+   matching_pursuit
+   thresholding_algorithm
+
+"""
+
 from collections import namedtuple
 from functools import wraps
 
@@ -35,30 +73,18 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
                                 least_squares=False,
                                 tol=1e-6):
     r"""
-    Given the :math:`\text{P}_0` problem of a system of linear equations
-
-    .. math::
-        \min_x{ \| x \|_0} \quad \text{s.t.} \ \boldsymbol{A} \vec{x} = \vec{b}
-        :label: p0
-
-    orthogonal Matching Pursuit (OMP) algorithm finds an approximate sparsest
-    solution :math:`\vec{x}_{\text{sparsest}}` to :eq:`p0` by solving
-
-    .. math::
-        \min_x{ \|\vec{b} - \boldsymbol{A} \vec{x} \|_2^2} \quad \text{s.t.}
-        \ \|x\|_0 \le k
-        :label: eq_constrained
-
-    where :math:`k` is the maximum number of non-zero real-valued coefficients
-    (atoms) of :math:`\vec{x}`.
+    Orthogonal Matching Pursuit (OMP) algorithm finds an approximate solution
+    to :eq:`p0_approx` s.t. :math:`\|x\|_0 \le k` in exactly `k`
+    (`n_nonzero_coefs`) steps. Orthogonality means that the same atom is
+    chosen from a dictionary of columns of `mat_a` no more than once.
 
     Parameters
     ----------
     mat_a : (N, M) np.ndarray
         A fixed weight matrix :math:`\boldsymbol{A}` in the equation
-        :eq:`eq_constrained`.
+        :eq:`p0_approx`.
     b : (M,) np.ndarray
-        The right side of the equation :eq:`eq_constrained`.
+        The right side of the equation :eq:`p0_approx`.
     n_nonzero_coefs : int
         :math:`k`, the maximum number of non-zero coefficients in
         :math:`\vec{x}`.
@@ -73,14 +99,8 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
 
     Returns
     -------
-    Solution:
-        A `namedtuple` with the following attributes:
-            `.x` - :math:`\vec{x}_{\text{sparsest}}` solution of
-            :eq:`eq_constrained`
-
-            `.support` - a list of atoms (non-zero elements of :math:`\vec{x}`)
-
-            `.residuals` - a list of residual vectors after each iteration
+    Solution
+        Refer to :ref:`greedy_pursuit`.
 
     Notes
     -----
@@ -147,17 +167,17 @@ def orthogonal_matching_pursuit(mat_a, b, n_nonzero_coefs,
 @_trim_atoms
 def matching_pursuit(mat_a, b, n_iters, weak_threshold=1., tol=1e-9):
     r"""
-    (Weak) Matching Pursuit (MP, WMP) algorithm of finding an approximate
-    sparsest solution :math:`\vec{x}_{\text{sparsest}}` of the system of
-    linear equations :eq:`eq_constrained`.
+    (Weak) Matching Pursuit (MP, WMP) algorithms find an approximate solution
+    to :eq:`p0_approx`. Compared to OMP, MP and WMP algorithms are weaker (in
+    terms of having larger residual) but faster.
 
     Parameters
     ----------
     mat_a : (N, M) np.ndarray
         A fixed weight matrix :math:`\boldsymbol{A}` in the equation
-        :eq:`eq_constrained`.
+        :eq:`p0_approx`.
     b : (M,) np.ndarray
-        The right side of the equation :eq:`eq_constrained`.
+        The right side of the equation :eq:`p0_approx`.
     n_iters : int
         The number of iterations to perform.
         The number of non-zero coefficients in the solution :math:`\vec{x}` is
@@ -173,9 +193,8 @@ def matching_pursuit(mat_a, b, n_iters, weak_threshold=1., tol=1e-9):
 
     Returns
     -------
-    Solution:
-        The solution of :eq:`eq_constrained`. Refer to the output
-        documentation of :func:`orthogonal_matching_pursuit`.
+    Solution
+        Refer to :ref:`greedy_pursuit`.
 
     Notes
     -----
@@ -214,26 +233,24 @@ def matching_pursuit(mat_a, b, n_iters, weak_threshold=1., tol=1e-9):
 @_trim_atoms
 def thresholding_algorithm(mat_a, b, n_nonzero_coefs):
     r"""
-    Thresholding algorithm of finding an approximate
-    sparsest solution :math:`\vec{x}_{\text{sparsest}}` of the system of
-    linear equations :eq:`eq_constrained`.
+    Thresholding algorithm is the fastest and least accurate among greedy
+    pursuit algorithms of finding an approximate solution to :eq:`p0_approx`.
 
     Parameters
     ----------
     mat_a : (N, M) np.ndarray
         A fixed weight matrix :math:`\boldsymbol{A}` in the equation
-        :eq:`eq_constrained`.
+        :eq:`p0_approx`.
     b : (M,) np.ndarray
-        The right side of the equation :eq:`eq_constrained`.
+        The right side of the equation :eq:`p0_approx`.
     n_nonzero_coefs : int
         :math:`k`, the maximum number of non-zero coefficients in
         :math:`\vec{x}`.
 
     Returns
     -------
-    Solution:
-        The solution of :eq:`eq_constrained`. Refer to the output
-        documentation of :func:`orthogonal_matching_pursuit`.
+    Solution
+        Refer to :ref:`greedy_pursuit`.
 
     Notes
     -----

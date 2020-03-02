@@ -49,7 +49,8 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-numpydoc_show_class_members = False
+
+autosummary_generate = True
 
 
 # -- Options for HTML output -------------------------------------------------
