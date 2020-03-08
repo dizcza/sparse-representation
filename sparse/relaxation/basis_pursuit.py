@@ -13,8 +13,10 @@ Basis Pursuit (BP) solvers tackle the original :math:`P_0` problem
 """
 
 import numpy as np
-from scipy.optimize import linprog
 from scipy.linalg import solve_triangular
+from scipy.optimize import linprog
+
+from sparse.relaxation.utils import soft_shrinkage
 
 
 def basis_pursuit_linprog(mat_a, b, tol=1e-4):
@@ -63,15 +65,6 @@ def basis_pursuit_linprog(mat_a, b, tol=1e-4):
     x = x_extended[: x_dim] - x_extended[x_dim:]
 
     return x
-
-
-def soft_threshold(x, lmbda):
-    x_soft = np.zeros_like(x)  # 0 if |x| < lmbda
-    mask_less = x <= -lmbda
-    mask_greater = x >= lmbda
-    x_soft[mask_less] = x[mask_less] + lmbda
-    x_soft[mask_greater] = x[mask_greater] - lmbda
-    return x_soft
 
 
 def basis_pursuit_admm(mat_a, b, lmbda, tol=1e-4, max_iters=100,
@@ -153,7 +146,7 @@ def basis_pursuit_admm(mat_a, b, lmbda, tol=1e-4, max_iters=100,
             x = M_inv.dot(b_eff)
 
         # v-update via soft thresholding
-        v = soft_threshold(x + u, lmbda=lmbda)
+        v = soft_shrinkage(x + u, threshold=lmbda)
 
         # u-update according to the ADMM formula
         u = u + x - v

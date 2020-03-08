@@ -80,7 +80,7 @@ for i in range(A.shape[1]):
         atom = np.reshape(atom, (-1))
 
         # Verify that the atom is not empty or nearly so
-        if np.sqrt(np.sum(atom ** 2)) > 1e-5:
+        if np.linalg.norm(atom) > 1e-5:
             empty_atom_flag = 0
 
             # TODO: Normalize the atom
@@ -95,17 +95,17 @@ def display_mondorian(k_estimated):
     [x0, b0, noise_std, b0_noisy, C, b] = construct_data(A, p=p, sigma=sigma,
                                                          k=true_k)
     plt.figure(figsize=(10, 2))
-    plt.subplot(141)
+    plt.subplot(231)
     plt.imshow(b0.reshape((n_size, n_size)))
     plt.title(f"Orig. b0 [k_true={true_k}]")
     plt.axis('off')
 
-    plt.subplot(142)
+    plt.subplot(232)
     plt.imshow(b0_noisy.reshape((n_size, n_size)))
     plt.title("b0_noisy")
     plt.axis('off')
 
-    plt.subplot(143)
+    plt.subplot(233)
     plt.imshow(C.T.dot(b).reshape((n_size, n_size)))
     plt.title("b corrupted")
     plt.axis('off')
@@ -117,9 +117,17 @@ def display_mondorian(k_estimated):
     # Compute the estimated image
     b_omp = A @ x_omp
 
-    plt.subplot(144)
+    plt.subplot(234)
     plt.imshow(b_omp.reshape((n_size, n_size)))
     plt.title(f"b-OMP reconstructed [k={k_estimated}]")
+    plt.axis('off')
+
+    from sparse.relaxation import ista
+    b_ista = ista(C.dot(A), b, alpha=0.5, tol=1e-3)
+    b_ista = A @ b_ista
+    plt.subplot(235)
+    plt.imshow(b_ista.reshape((n_size, n_size)))
+    plt.title("ISTA")
     plt.axis('off')
 
     plt.savefig(REPORT_DIR / "reconstructed.png")
