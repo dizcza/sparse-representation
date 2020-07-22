@@ -3,12 +3,12 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from finproj.bp_admm import bp_admm
-from finproj.compute_effective_dictionary import compute_effective_dictionary
-from finproj.compute_psnr import compute_psnr
-from finproj.construct_data import construct_data
-from finproj.oracle import oracle
-from midproj.omp import omp
+from edX.finproj.bp_admm import bp_admm
+from edX.finproj.compute_effective_dictionary import compute_effective_dictionary
+from edX.finproj.compute_psnr import compute_psnr
+from edX.finproj.construct_data import construct_data
+from edX.finproj.oracle import oracle
+from edX.midproj.omp import omp
 
 # In this project we will solve a variant of the P0^\epsilon for filling-in 
 # missing pixels (also known as "inpainting") in a synthetic image.

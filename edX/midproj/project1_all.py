@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import trange
 
-from midproj.lp import lp
-from midproj.omp import omp
+from edX.midproj.lp import lp
+from edX.midproj.omp import omp
 
 # %% Parameters
 

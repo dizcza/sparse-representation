@@ -4,6 +4,7 @@ doc/_build
 doc/reference/toctree/
 dist/
 sparse.egg-info/
+data/
 
 *.pdf
 *.doc*

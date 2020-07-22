@@ -16,9 +16,35 @@ Python functions to analyze sparse representations by solving the P0-problem
 * Relaxation algorithms, approximating the P0-problem:
     * Basis Pursuit (L1-relaxation)
     * Basis Pursuit + ADMM
+    * Iterative Shrinkage Algorithm (ISTA)
 
 Documentation: https://sparse-representation.readthedocs.io/
+
+`sparse.nn` module contains PyTorch implementation of the Basis Pursuit relaxation method, an example of which you'll find in the [examples](sparse/examples) folder.
 
 The theoretical foundation of these functions is in edX course
 [Sparse Representations in Signal and Image Processing](
 https://courses.edx.org/courses/course-v1:IsraelX+236862.1x+3T2019/course/).
+
+
+## Installation
+
+```
+$ git clone https://github.com/dizcza/sparse-representation.git
+$ cd sparse-representation
+$ pip install -e .
+```
+
+### NN module
+
+If you want to install `sparse.nn` module, run `pip install -e .[extra]`.
+
+Before running any examples, start visdom server with 
+
+```
+$ python -m visdom.server
+```
+
+Then proceed to the examples.
+
+More examples are at http://85.217.171.57:8097. Choose environments with `MatchingPursuit` key.
