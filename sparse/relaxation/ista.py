@@ -42,10 +42,10 @@ def ista(A, b, alpha, tol=1e-4, max_iters=100):
     """
     eigvals = np.linalg.eigvals(A.T.dot(A))
 
-    # 1) abs() is technically not needed since the eigenvalues of a positive
-    #    semi-definite symmetric matrix are non-negative
-    # 2) multiplied by '2' because we need L > the-largest-eigval
-    eigval_largest = 2 * np.max(np.abs(eigvals))
+    # multiplied by '2' because we need L > the-largest-eigval
+    eigval_largest = 2 * np.max(eigvals)
+    assert eigval_largest > 0, "The eigenvalues of a positive semi-definite " \
+                               "symmetric matrix must be non-negative"
 
     alpha_norm = alpha / eigval_largest
     m_atoms = A.shape[1]

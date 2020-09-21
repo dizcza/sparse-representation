@@ -1,3 +1,13 @@
+r"""
+Shrinkage functions.
+
+.. autosummary::
+   :toctree: toctree/relaxation/
+
+   soft_shrinkage
+
+"""
+
 import numpy as np
 
 
