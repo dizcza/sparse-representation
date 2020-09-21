@@ -9,3 +9,4 @@ Content
    reference/coherence
    reference/greedy_pursuit
    reference/relaxation
+   reference/nn

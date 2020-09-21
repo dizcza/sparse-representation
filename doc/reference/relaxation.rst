@@ -1,4 +1,4 @@
-.. _basis_pursuit:
+.. _relaxation:
 
 =====================
 Relaxation algorithms

@@ -1,3 +1,13 @@
+r"""
+Basis Pursuit (BP) solvers (refer to :ref:`relaxation`) PyTorch API.
+
+.. autosummary::
+   :toctree: toctree/nn/
+
+   basis_pursuit_admm
+
+"""
+
 import torch
 import torch.nn.functional as F
 
@@ -6,7 +16,7 @@ __all__ = [
 ]
 
 
-def negligible_improvement(x, x_prev, tol: float) -> torch.BoolTensor:
+def _negligible_improvement(x, x_prev, tol: float) -> torch.BoolTensor:
     x_norm = x.norm(dim=1)
     dx_norm = (x - x_prev).norm(dim=1)
     return dx_norm / x_norm < tol
@@ -82,7 +92,7 @@ def basis_pursuit_admm(A, b, lambd, M_inv=None, tol=1e-4, max_iters=100):
         # x is of shape (<=B, m_atoms)
         v = F.softshrink(x + u, lambd)
         u = u + x - v
-        solved_batch = negligible_improvement(v, v_prev, tol=tol)
+        solved_batch = _negligible_improvement(v, v_prev, tol=tol)
         v, u, A_dot_b = _reduce(solved, solved_batch, v_solution, v, u,
                                 A_dot_b)
         if v.shape[0] == 0:
