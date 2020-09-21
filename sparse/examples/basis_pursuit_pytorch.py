@@ -1,16 +1,16 @@
 import torch
 import torch.nn as nn
 from mighty.loss import LossPenalty
-from mighty.monitor.accuracy import AccuracyAutoencoder
+from mighty.monitor.accuracy import AccuracyEmbedding
 from mighty.trainer import TrainerAutoencoder
+from mighty.utils.common import set_seed
 from mighty.utils.data import DataLoader, TransformDefault
+from mighty.utils.stub import OptimizerStub
 from torchvision.datasets import MNIST
 
-from mighty.utils.stub import OptimizerStub
 from sparse.nn.model import MatchingPursuit
 from sparse.nn.trainer import TestMatchingPursuitParameters, \
     TestMatchingPursuit
-from mighty.utils.common import set_seed
 
 
 def get_optimizer_scheduler(model: nn.Module):
@@ -55,7 +55,7 @@ def test_matching_pursuit(dataset_cls=MNIST):
                                   criterion=nn.MSELoss(),
                                   data_loader=data_loader,
                                   optimizer=OptimizerStub(),
-                                  accuracy_measure=AccuracyAutoencoder(
+                                  accuracy_measure=AccuracyEmbedding(
                                       cache=True
                                   ))
     trainer.train(n_epochs=1, mutual_info_layers=0)
@@ -77,7 +77,7 @@ def train_matching_pursuit(dataset_cls=MNIST):
                                  data_loader=data_loader,
                                  optimizer=optimizer,
                                  scheduler=scheduler,
-                                 accuracy_measure=AccuracyAutoencoder(
+                                 accuracy_measure=AccuracyEmbedding(
                                      cache=True
                                  ))
     # trainer.monitor.advanced_monitoring(level=MonitorLevel.FULL)

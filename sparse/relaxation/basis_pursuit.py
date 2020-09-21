@@ -2,10 +2,9 @@ r"""
 Basis Pursuit (BP) solvers tackle the original :math:`P_0` problem
 :eq:`p0_approx` by posing L1-relaxation on the norm of unknown :math:`\vec{x}`.
 
-.. currentmodule:: sparse.basis_pursuit
 
 .. autosummary::
-   :toctree: toctree/basis_pursuit/
+   :toctree: toctree/relaxation/
 
    basis_pursuit_linprog
    basis_pursuit_admm

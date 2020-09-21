@@ -1,6 +1,17 @@
+r"""
+Iterative Shrinkage Algorithm (ISTA) is also used to find an approximate
+solution to :math:`\text{P}_0` problem, but Basis Pursuit methods are superior.
+
+.. autosummary::
+   :toctree: toctree/relaxation/
+
+   ista
+
+"""
+
 import numpy as np
 
-from .utils import soft_shrinkage, negligible_improvement
+from sparse.relaxation.utils import soft_shrinkage, negligible_improvement
 
 
 def ista(A, b, alpha, tol=1e-4, max_iters=100):
