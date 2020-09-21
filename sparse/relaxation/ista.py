@@ -53,7 +53,7 @@ def ista(A, b, alpha, tol=1e-4, max_iters=100):
     x_prev = x.copy()
     for iter_id in range(max_iters):
         # x_unconstrained is before applying L1 norm constraint
-        x_unconstrained = x - A.T.dot(A.dot(x) - b) / eigval_largest
+        x_unconstrained = x + A.T.dot(b - A.dot(x)) / eigval_largest
         x = soft_shrinkage(x_unconstrained, lambd=alpha_norm)
         if negligible_improvement(x, x_prev, tol=tol):
             break
