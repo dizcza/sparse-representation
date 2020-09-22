@@ -7,9 +7,11 @@ from mighty.monitor.var_online import MeanOnline
 from mighty.trainer import TrainerAutoencoder
 from mighty.trainer.trainer import Trainer
 from mighty.utils.algebra import compute_psnr, compute_sparsity
-from mighty.utils.common import input_from_batch, batch_to_cuda
+from mighty.utils.common import input_from_batch, batch_to_cuda, find_layers
 from mighty.utils.data import DataLoader
 from mighty.utils.stub import OptimizerStub
+
+from sparse.nn.model import Softshrink, MatchingPursuit, LISTA
 
 __all__ = [
     "TestMatchingPursuit",
@@ -110,3 +112,30 @@ class TestMatchingPursuit(TrainerAutoencoder):
 
     def train_epoch(self, epoch):
         self.timer.batch_id += self.timer.batches_in_epoch
+
+
+class TrainMatchingPursuitLambda(TrainerAutoencoder):
+
+    watch_modules = TrainerAutoencoder.watch_modules + (Softshrink,
+                                                        MatchingPursuit,
+                                                        LISTA)
+
+    def monitor_functions(self):
+        super().monitor_functions()
+
+        try:
+            softshrink = next(find_layers(self.model, layer_class=Softshrink))
+        except StopIteration:
+            softshrink = None
+
+        def lambda_mean(viz):
+            # effective (positive) lambda
+            lambd = softshrink.lambd.data.clamp(min=0)
+            viz.line_update(y=[lambd.mean()], opts=dict(
+                xlabel='Epoch',
+                ylabel='Lambda mean',
+                title='Softshrink lambda threshold',
+            ))
+
+        if softshrink is not None:
+            self.monitor.register_func(lambda_mean)

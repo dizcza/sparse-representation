@@ -1,10 +1,12 @@
 .idea/
 *.pyc
 doc/_build
-doc/reference/toctree/
+doc/reference/toctree/*
+!doc/reference/toctree/include
 dist/
 sparse.egg-info/
 data/
+ignored/
 
 *.pdf
 *.doc*

@@ -2,15 +2,15 @@ import torch
 import torch.nn as nn
 from mighty.loss import LossPenalty
 from mighty.monitor.accuracy import AccuracyEmbedding
-from mighty.trainer import TrainerAutoencoder
+from mighty.monitor.monitor import MonitorLevel
 from mighty.utils.common import set_seed
 from mighty.utils.data import DataLoader, TransformDefault
 from mighty.utils.stub import OptimizerStub
 from torchvision.datasets import MNIST
 
-from sparse.nn.model import MatchingPursuit
+from sparse.nn.model import MatchingPursuit, LISTA
 from sparse.nn.trainer import TestMatchingPursuitParameters, \
-    TestMatchingPursuit
+    TestMatchingPursuit, TrainMatchingPursuitLambda
 
 
 def get_optimizer_scheduler(model: nn.Module):
@@ -55,9 +55,7 @@ def test_matching_pursuit(dataset_cls=MNIST):
                                   criterion=nn.MSELoss(),
                                   data_loader=data_loader,
                                   optimizer=OptimizerStub(),
-                                  accuracy_measure=AccuracyEmbedding(
-                                      cache=True
-                                  ))
+                                  accuracy_measure=AccuracyEmbedding())
     trainer.train(n_epochs=1, mutual_info_layers=0)
 
 
@@ -65,22 +63,20 @@ def train_matching_pursuit(dataset_cls=MNIST):
     # Typically, the 'out_features', the second parameter of MatchingPursuit
     # model, should be greater than the 'in_features'.
     # In case of MNIST, it works even with the smaller values.
-    model = MatchingPursuit(784, 256, lamb=0.2)
+    model = LISTA(784, 2048)
     data_loader = DataLoader(dataset_cls,
                              transform=TransformDefault.mnist(
                                  normalize=None
                              ))
     criterion = LossPenalty(nn.MSELoss(), lambd=model.lambd)
     optimizer, scheduler = get_optimizer_scheduler(model)
-    trainer = TrainerAutoencoder(model,
-                                 criterion=criterion,
-                                 data_loader=data_loader,
-                                 optimizer=optimizer,
-                                 scheduler=scheduler,
-                                 accuracy_measure=AccuracyEmbedding(
-                                     cache=True
-                                 ))
-    # trainer.monitor.advanced_monitoring(level=MonitorLevel.FULL)
+    trainer = TrainMatchingPursuitLambda(model,
+                                         criterion=criterion,
+                                         data_loader=data_loader,
+                                         optimizer=optimizer,
+                                         scheduler=scheduler,
+                                         accuracy_measure=AccuracyEmbedding())
+    trainer.monitor.advanced_monitoring(level=MonitorLevel.FULL)
     trainer.train(n_epochs=10, mutual_info_layers=0)
 
 
