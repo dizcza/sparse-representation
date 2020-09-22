@@ -27,7 +27,7 @@ def _reduce(solved, solved_batch, x_solution, x, *args):
         args_reduced = []
         unsolved_ids = torch.nonzero(~solved, as_tuple=False)
         unsolved_ids.squeeze_(dim=1)
-        keys = solved_batch.nonzero()
+        keys = solved_batch.nonzero(as_tuple=False)
         keys.squeeze_(dim=1)
         became_solved_ids = unsolved_ids[keys]
         x_solution[became_solved_ids] = x[keys]

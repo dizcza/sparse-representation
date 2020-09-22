@@ -165,8 +165,8 @@ class TrainMatchingPursuitLambda(TrainerAutoencoder):
 
         def lambda_mean(viz):
             # effective (positive) lambda
-            lambd = softshrink.lambd.data.clamp(min=0)
-            viz.line_update(y=[lambd.mean()], opts=dict(
+            lambd = softshrink.lambd.data.clamp(min=0).cpu()
+            viz.line_update(y=[lambd.mean().item()], opts=dict(
                 xlabel='Epoch',
                 ylabel='Lambda mean',
                 title='Softshrink lambda threshold',
