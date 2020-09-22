@@ -1,7 +1,11 @@
 # Sparse Representation Algorithms
 
-Python functions to analyze sparse representations by solving the P0-problem
-`min_x ||x||_0  s.t. Ax = b`:
+Python functions to analyze sparse representations by solving the P0- and P1-problems.
+
+1. P0-epsilon problem: `min_x ||x||_0 s.t. ||Ax - b|| < eps`
+2. P1-epsilon problem: `min_x ||x||_1 s.t. ||Ax - b|| < eps`
+
+## Algorithms
 
 * Coherence of a matrix:
     * Mutual Coherence
@@ -19,9 +23,12 @@ Python functions to analyze sparse representations by solving the P0-problem
     * Iterative Shrinkage Algorithm (ISTA, Fast ISTA)
     * Learned Iterative Shrinkage-Thresholding Algorithm (LISTA)
 
-Documentation: https://sparse-representation.readthedocs.io/
-
 `sparse.nn` module contains PyTorch implementation of Basis Pursuit & LISTA methods (see [examples](sparse/examples)).
+
+
+## Documentation
+
+See https://sparse-representation.readthedocs.io
 
 The theoretical foundations of these functions are in edX course
 [Sparse Representations in Signal and Image Processing](
@@ -48,4 +55,4 @@ $ python -m visdom.server
 
 Then proceed to the examples.
 
-More examples are at http://85.217.171.57:8097. Choose environments with `MatchingPursuit` key.
+More examples are at http://85.217.171.57:8097. Choose environments with `MatchingPursuit`.
