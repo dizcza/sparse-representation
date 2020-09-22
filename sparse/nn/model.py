@@ -112,7 +112,7 @@ class Softshrink(nn.Module):
         return out
 
     def extra_repr(self):
-        return f"[learnable] n_features={self.lambd.nelement()}"
+        return f"n_features={self.lambd.nelement()}"
 
 
 class LISTA(nn.Module):
@@ -146,6 +146,8 @@ class LISTA(nn.Module):
     def __init__(self, in_features, out_features, n_folds=2):
         super().__init__()
         assert n_folds >= 1
+        self.in_features = in_features
+        self.out_features = out_features
         self.n_folds = n_folds
         self.weight_input = nn.Parameter(
             torch.Tensor(out_features, in_features))  # W_e matrix
@@ -204,3 +206,7 @@ class LISTA(nn.Module):
 
             decoded = z.matmul(weight)  # (B, In)
         return AutoencoderOutput(z, decoded.view(*input_shape))
+
+    def extra_repr(self):
+        return f"in_features={self.in_features}, " \
+               f"out_features={self.out_features}"

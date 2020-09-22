@@ -192,7 +192,18 @@ class TrainLISTA(TrainMatchingPursuitLambda):
         assert isinstance(self.model, LISTA)
         input = input_from_batch(batch)
         latent, reconstructed = output
-        lambd = self.model.lambd.data.relu().mean().item()
-        latent_best, _ = self.model.forward_best(input, lambd=lambd)
+
+        criterion_reconstr = nn.BCEWithLogitsLoss()
+        error_best = torch.tensor(float('inf'))
+        latent_best = None
+        lambd_best = None
+        for lambd in torch.logspace(-4, 1, steps=10):
+            latent_lambd, decoded = self.model.forward_best(input, lambd=lambd)
+            error = criterion_reconstr(decoded, input)
+            if error < error_best:
+                error_best = error
+                latent_best = latent_lambd
+                lambd_best = lambd
+        print(lambd_best)
         loss = self.criterion(latent, latent_best)
         return loss
