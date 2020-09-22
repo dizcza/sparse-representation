@@ -23,8 +23,22 @@ Python functions to analyze sparse representations by solving the P0- and P1-pro
     * Iterative Shrinkage Algorithm (ISTA, Fast ISTA)
     * Learned Iterative Shrinkage-Thresholding Algorithm (LISTA)
 
-`sparse.nn` module contains PyTorch implementation of Basis Pursuit & LISTA methods (see [examples](sparse/examples)).
+`sparse.nn` module contains PyTorch implementation of Basis Pursuit & LISTA methods.
 
+## Example
+
+To illustrate an example, we 
+
+1) simulate an image `x` of size `n x n`, constructed with bars;
+2) add noise and corrupt the image -> `x_noisy`;
+3) generate a fixed dictionary matrix `A` of size `n^2 x m` (`m >> n^2`) with random bars as atoms (columns);
+4) reconstruct `x'` from `x_noisy` by seeking the sparsest vector `z` such that `Az ≈ x`.
+
+![](edX/finproj/report/reconstructed.png)
+
+### Trainable dictionary matrix
+
+For `sparse.nn` usage, refer to [examples](sparse/examples).
 
 ## Documentation
 
@@ -47,12 +61,11 @@ $ pip install -e .
 
 If you want to install `sparse.nn` module, run `pip install -e .[extra]`.
 
-Before running any examples, start visdom server with 
+Start Visdom server and run the examples with
 
 ```
 $ python -m visdom.server
+$ python sparse/examples/basis_pursuit_pytorch.py
 ```
-
-Then proceed to the examples.
 
 More examples are at http://85.217.171.57:8097. Choose environments with `MatchingPursuit`.
