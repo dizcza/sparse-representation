@@ -185,10 +185,22 @@ class LISTA(nn.Module):
         """
         input_shape = x.shape
         x = x.flatten(start_dim=1)  # (B, In)
-        b = x.matmul(self.weight_input.T)  # (B, Out)
+        b = x.matmul(self.weight_input.t())  # (B, Out)
         z = self.soft_shrink(b)  # (B, Out)
         for recursive_step in range(self.n_folds - 1):
-            z = self.soft_shrink(b + z.matmul(self.weight_lateral.T))
+            z = self.soft_shrink(b + z.matmul(self.weight_lateral.t()))
 
         decoded = z.matmul(self.weight_input)  # (B, In)
+        return AutoencoderOutput(z, decoded.view(*input_shape))
+
+    def forward_best(self, x, lambd=0.2, **solver_kwargs):
+        input_shape = x.shape
+        with torch.no_grad():
+            x = x.flatten(start_dim=1)
+            w_norm = self.weight_input.norm(p=2, dim=1).unsqueeze(dim=1)
+            weight = self.weight_input / w_norm
+            z = basis_pursuit_admm(A=weight.t(), b=x,
+                                   lambd=lambd, **solver_kwargs)
+
+            decoded = z.matmul(weight)  # (B, In)
         return AutoencoderOutput(z, decoded.view(*input_shape))

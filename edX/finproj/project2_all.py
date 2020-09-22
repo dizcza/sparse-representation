@@ -123,11 +123,18 @@ def display_mondorian(k_estimated):
     plt.axis('off')
 
     from sparse.relaxation import ista
-    b_ista = ista(C.dot(A), b, alpha=0.5, tol=1e-3)
+    b_ista = ista(C.dot(A), b, alpha=0.05)
     b_ista = A @ b_ista
     plt.subplot(235)
     plt.imshow(b_ista.reshape((n_size, n_size)))
     plt.title("ISTA")
+    plt.axis('off')
+
+    b_bmp = bp_admm(C.dot(A), b, lmbda=0.05)
+    b_bmp = A @ b_bmp
+    plt.subplot(236)
+    plt.imshow(b_bmp.reshape((n_size, n_size)))
+    plt.title("BP ADMM")
     plt.axis('off')
 
     plt.savefig(REPORT_DIR / "reconstructed.png")

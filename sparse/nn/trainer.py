@@ -1,3 +1,17 @@
+r"""
+Matching Pursuit Trainers.
+
+.. autosummary::
+   :toctree: toctree/nn
+
+   TrainMatchingPursuitLambda
+   TrainLISTA
+   TestMatchingPursuit
+   TestMatchingPursuitParameters
+
+"""
+
+
 import torch
 import torch.nn as nn
 import torch.utils.data
@@ -15,11 +29,20 @@ from sparse.nn.model import Softshrink, MatchingPursuit, LISTA
 
 __all__ = [
     "TestMatchingPursuit",
-    "TestMatchingPursuitParameters"
+    "TestMatchingPursuitParameters",
+    "TrainMatchingPursuitLambda",
+    "TrainLISTA"
 ]
 
 
 class TestMatchingPursuitParameters(TrainerAutoencoder):
+    r"""
+    Swipe through a range of Softshrink threshold parameters
+    :code:`bmp_params_range` and **show** the best one.
+
+    The user then can pick the "best" parameter by looking at the PSNR and
+    sparsity plots - the choice is not trivial and depends on the application.
+    """
 
     def __init__(self,
                  model: nn.Module,
@@ -109,12 +132,24 @@ class TestMatchingPursuitParameters(TrainerAutoencoder):
 
 
 class TestMatchingPursuit(TrainerAutoencoder):
+    r"""
+    Test Matching Pursuit with the fixed Softshrink threshold (embedded in a
+    model) and trained weights.
+    """
 
     def train_epoch(self, epoch):
         self.timer.batch_id += self.timer.batches_in_epoch
 
 
 class TrainMatchingPursuitLambda(TrainerAutoencoder):
+    r"""
+    Train :code:`MatchingPursuit` or :code:`LISTA` AutoEncoder with
+    :code:`LossPenalty` loss function, defined as
+
+    .. math::
+        L(W, X) = ReconstructionLoss + \lambda \left|\left| Z
+        \right|\right|_1^2
+    """
 
     watch_modules = TrainerAutoencoder.watch_modules + (Softshrink,
                                                         MatchingPursuit,
@@ -139,3 +174,24 @@ class TrainMatchingPursuitLambda(TrainerAutoencoder):
 
         if softshrink is not None:
             self.monitor.register_func(lambda_mean)
+
+
+class TrainLISTA(TrainMatchingPursuitLambda):
+    r"""
+    Train LISTA with the original loss, defined in the paper as MSE between the
+    latent vector Z (forward pass of LISTA NN) and the best possible latent
+    vector Z*, obtained by running Basis Pursuit ADMM (shows better results
+    that using original ISTA as the ground truth) on input X.
+
+    .. math::
+        L(W, X) = \frac{1}{2} \left|\left| Z^* - Z \right|\right|^2
+
+    """
+
+    def _get_loss(self, batch, output):
+        assert isinstance(self.model, LISTA)
+        input = input_from_batch(batch)
+        latent, reconstructed = output
+        latent_best, _ = self.model.forward_best(input)
+        loss = self.criterion(latent, latent_best)
+        return loss
