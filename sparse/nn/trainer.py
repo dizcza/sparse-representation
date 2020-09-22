@@ -192,6 +192,7 @@ class TrainLISTA(TrainMatchingPursuitLambda):
         assert isinstance(self.model, LISTA)
         input = input_from_batch(batch)
         latent, reconstructed = output
-        latent_best, _ = self.model.forward_best(input)
+        lambd = self.model.lambd.data.relu().mean().item()
+        latent_best, _ = self.model.forward_best(input, lambd=lambd)
         loss = self.criterion(latent, latent_best)
         return loss
