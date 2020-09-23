@@ -10,18 +10,13 @@ Basis Pursuit (BP) solvers (refer to :ref:`relaxation`) PyTorch API.
 
 import torch
 import torch.nn.functional as F
+import warnings
 
 from mighty.monitor.var_online import MeanOnline
 
 __all__ = [
     "basis_pursuit_admm"
 ]
-
-
-def _negligible_improvement(x, x_prev, tol: float) -> torch.BoolTensor:
-    x_norm = x.norm(dim=1)
-    dx_norm = (x - x_prev).norm(dim=1)
-    return dx_norm / x_norm < tol
 
 
 def _reduce(solved, solved_batch, x_solution, x, *args):
@@ -89,13 +84,19 @@ def basis_pursuit_admm(A, b, lambd, M_inv=None, tol=1e-4, max_iters=100,
     solved = torch.zeros(batch_size, dtype=torch.bool)
 
     iter_id = 0
+    dv_norm = None
     for iter_id in range(max_iters):
         b_eff = A_dot_b + v - u
         x = b_eff.matmul(M_inv)  # M_inv is already transposed
         # x is of shape (<=B, m_atoms)
         v = F.softshrink(x + u, lambd)
         u = u + x - v
-        solved_batch = _negligible_improvement(v, v_prev, tol=tol)
+        v_norm = v.norm(dim=1)
+        if (v_norm == 0).any():
+            warnings.warn(f"Lambda ({lambd}) is set too large: "
+                          f"the output vector is zero-valued.")
+        dv_norm = (v - v_prev).norm(dim=1) / (v_norm + 1e-9)
+        solved_batch = dv_norm < tol
         v, u, A_dot_b = _reduce(solved, solved_batch, v_solution, v, u,
                                 A_dot_b)
         if v.shape[0] == 0:
@@ -108,10 +109,6 @@ def basis_pursuit_admm(A, b, lambd, M_inv=None, tol=1e-4, max_iters=100,
     v_solution[~solved] = v  # dump unsolved iterations
 
     if return_stats:
-        if v.shape[0] == 0:
-            dv_norm = torch.tensor(tol)
-        else:
-            dv_norm = (v - v_prev).norm(dim=1) / v.norm(dim=1)
         return v_solution, dv_norm.mean(), iter_id
 
     return v_solution

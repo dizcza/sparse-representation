@@ -97,7 +97,7 @@ class MatchingPursuit(nn.Module):
         return AutoencoderOutput(z, decoded.view(*input_shape))
 
     def normalize_weight(self):
-        w_norm = self.weight.norm(p=2, dim=1).unsqueeze(dim=1)
+        w_norm = self.weight.norm(p=2, dim=1, keepdim=True)
         self.weight.div_(w_norm)
 
     def extra_repr(self):
@@ -215,7 +215,7 @@ class LISTA(nn.Module):
         input_shape = x.shape
         with torch.no_grad():
             x = x.flatten(start_dim=1)
-            w_norm = self.weight_input.norm(p=2, dim=1).unsqueeze(dim=1)
+            w_norm = self.weight_input.norm(p=2, dim=1, keepdim=True)
             weight = self.weight_input / w_norm
             z = self.solver.solve(A=weight.t(), b=x,
                                   save_stats=not self.training)
