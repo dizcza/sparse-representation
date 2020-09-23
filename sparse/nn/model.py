@@ -91,8 +91,7 @@ class MatchingPursuit(nn.Module):
         with torch.no_grad():
             self.normalize_weight()
             # save the statistics during testing only
-            z = solver.solve(A=self.weight.t(), b=x,
-                             save_stats=not self.training)
+            z = solver.solve(A=self.weight.t(), b=x)
         decoded = z.matmul(self.weight)
         return AutoencoderOutput(z, decoded.view(*input_shape))
 
@@ -217,8 +216,7 @@ class LISTA(nn.Module):
             x = x.flatten(start_dim=1)
             w_norm = self.weight_input.norm(p=2, dim=1, keepdim=True)
             weight = self.weight_input / w_norm
-            z = self.solver.solve(A=weight.t(), b=x,
-                                  save_stats=not self.training)
+            z = self.solver.solve(A=weight.t(), b=x)
 
             decoded = z.matmul(weight)  # (B, In)
         return AutoencoderOutput(z, decoded.view(*input_shape))

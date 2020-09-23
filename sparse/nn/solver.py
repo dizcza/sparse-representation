@@ -8,11 +8,14 @@ Basis Pursuit (BP) solvers (refer to :ref:`relaxation`) PyTorch API.
 
 """
 
+from collections import defaultdict
+
 import torch
 import torch.nn.functional as F
 import warnings
 
 from mighty.monitor.var_online import MeanOnline
+from mighty.utils.algebra import compute_psnr, compute_sparsity
 
 __all__ = [
     "basis_pursuit_admm"
@@ -119,19 +122,22 @@ class BasisPursuitADMM:
         self.lambd = lambd
         self.tol = tol
         self.max_iters = max_iters
-        self.online = dict(dv_norm=MeanOnline(),
-                           iterations=MeanOnline())
+        self.online = defaultdict(MeanOnline)
+        self.save_stats = False
 
-    def solve(self, A, b, M_inv=None, save_stats=True):
+    def solve(self, A, b, M_inv=None):
         v_solution, dv_norm, iteration = basis_pursuit_admm(
             A=A, b=b, lambd=self.lambd,
             M_inv=M_inv, tol=self.tol,
             max_iters=self.max_iters,
             return_stats=True)
-        if save_stats:
+        if self.save_stats:
             iteration = torch.tensor(iteration + 1, dtype=torch.float32)
             self.online['dv_norm'].update(dv_norm.cpu())
             self.online['iterations'].update(iteration)
+            b_restored = v_solution.matmul(A.t())
+            self.online['psnr'].update(compute_psnr(b, b_restored).cpu())
+            self.online['sparsity'].update(compute_sparsity(v_solution).cpu())
         return v_solution
 
     def reset_statistics(self):

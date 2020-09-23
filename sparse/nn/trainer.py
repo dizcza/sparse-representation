@@ -28,7 +28,7 @@ from sparse.nn.model import Softshrink, MatchingPursuit, LISTA
 __all__ = [
     "TestMatchingPursuit",
     "TestMatchingPursuitParameters",
-    "TrainMatchingPursuitLambda",
+    "TrainMatchingPursuit",
     "TrainLISTA"
 ]
 
@@ -139,7 +139,7 @@ class TestMatchingPursuit(TrainerAutoencoder):
         self.timer.batch_id += self.timer.batches_in_epoch
 
 
-class TrainMatchingPursuitLambda(TrainerAutoencoder):
+class TrainMatchingPursuit(TrainerAutoencoder):
     r"""
     Train :code:`MatchingPursuit` or :code:`LISTA` AutoEncoder with
     :code:`LossPenalty` loss function, defined as
@@ -198,8 +198,15 @@ class TrainMatchingPursuitLambda(TrainerAutoencoder):
         self.model.solver.reset_statistics()
         super()._epoch_finished(loss)
 
+    def full_forward_pass(self, train=True):
+        # Save convergence statistics for train forward pass only
+        self.model.solver.save_stats = train
+        loss = super().full_forward_pass(train=train)
+        self.model.solver.save_stats = False
+        return loss
 
-class TrainLISTA(TrainMatchingPursuitLambda):
+
+class TrainLISTA(TrainMatchingPursuit):
     r"""
     Train LISTA with the original loss, defined in the paper as MSE between the
     latent vector Z (forward pass of LISTA NN) and the best possible latent
@@ -209,14 +216,31 @@ class TrainLISTA(TrainMatchingPursuitLambda):
     .. math::
         L(W, X) = \frac{1}{2} \left|\left| Z^* - Z \right|\right|^2
 
+    :code:`TrainLISTA` performs worse than :code:`TrainMatchingPursuit`.
+
     """
+
+    lambd_as_softshrink = False
+    
+    def log_trainer(self):
+        super().log_trainer()
+        self.monitor.log(f"lambd_as_softshrink={self.lambd_as_softshrink}")
 
     def _get_loss(self, batch, output):
         assert isinstance(self.model, LISTA)
         input = input_from_batch(batch)
         latent, reconstructed = output
-        lamdb = self.model.soft_shrink.lambd.data.relu().mean().item()
-        self.model.solver.lambd = lamdb
+        if self.lambd_as_softshrink:
+            lamdb = self.model.soft_shrink.lambd.data.relu().mean().item()
+            self.model.solver.lambd = lamdb
         latent_best, _ = self.model.forward_best(input)
         loss = self.criterion(latent, latent_best)
         return loss
+
+    def _epoch_finished(self, loss):
+        solver_online = self.model.solver.online
+        self.monitor.plot_psnr(solver_online['psnr'].get_mean(),
+                               mode='solver')
+        self.monitor.update_sparsity(solver_online['sparsity'].get_mean(),
+                                     mode='solver')
+        super()._epoch_finished(loss)
