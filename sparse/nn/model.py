@@ -181,9 +181,9 @@ class LISTA(nn.Module):
 
     def reset_parameters(self):
         # kaiming preserves the weights variance norm, compared to randn()
-        nn.init.kaiming_normal_(self.weight_input, a=1)
-        nn.init.kaiming_normal_(self.weight_lateral, a=1)
-        nn.init.uniform_(self.soft_shrink.lambd, a=0.1, b=0.9)
+        nn.init.kaiming_uniform_(self.weight_input, a=math.sqrt(5))
+        nn.init.kaiming_uniform_(self.weight_lateral, a=math.sqrt(5))
+        nn.init.uniform_(self.soft_shrink.lambd, a=0.01, b=0.1)
 
     def forward(self, x):
         """

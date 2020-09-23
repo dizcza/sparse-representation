@@ -180,7 +180,7 @@ class TrainMatchingPursuitLambda(TrainerAutoencoder):
             viz.line_update(y=[dv_norm], opts=dict(
                 xlabel='Epoch',
                 ylabel='dv_norm (final improvement)',
-                title='Solver convergence/tolerance plot',
+                title='Solver convergence',
             ))
 
         def plot_iterations(viz):
@@ -215,6 +215,8 @@ class TrainLISTA(TrainMatchingPursuitLambda):
         assert isinstance(self.model, LISTA)
         input = input_from_batch(batch)
         latent, reconstructed = output
+        lamdb = self.model.soft_shrink.lambd.data.relu().mean().item()
+        self.model.solver.lambd = lamdb
         latent_best, _ = self.model.forward_best(input)
         loss = self.criterion(latent, latent_best)
         return loss
