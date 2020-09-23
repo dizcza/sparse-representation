@@ -11,6 +11,8 @@ Basis Pursuit (BP) solvers (refer to :ref:`relaxation`) PyTorch API.
 import torch
 import torch.nn.functional as F
 
+from mighty.monitor.var_online import MeanOnline
+
 __all__ = [
     "basis_pursuit_admm"
 ]
@@ -43,7 +45,8 @@ def _reduce(solved, solved_batch, x_solution, x, *args):
     return args_reduced
 
 
-def basis_pursuit_admm(A, b, lambd, M_inv=None, tol=1e-4, max_iters=100):
+def basis_pursuit_admm(A, b, lambd, M_inv=None, tol=1e-4, max_iters=100,
+                       return_stats=False):
     r"""
     Basis Pursuit solver for the :math:`Q_1^\epsilon` problem
 
@@ -104,4 +107,40 @@ def basis_pursuit_admm(A, b, lambd, M_inv=None, tol=1e-4, max_iters=100):
         assert solved.all()
     v_solution[~solved] = v  # dump unsolved iterations
 
+    if return_stats:
+        if v.shape[0] == 0:
+            dv_norm = torch.tensor(tol)
+        else:
+            dv_norm = (v - v_prev).norm(dim=1) / v.norm(dim=1)
+        return v_solution, dv_norm.mean(), iter_id
+
     return v_solution
+
+
+class BasisPursuitADMM:
+    def __init__(self, lambd=0.1, tol=1e-4, max_iters=100):
+        self.lambd = lambd
+        self.tol = tol
+        self.max_iters = max_iters
+        self.online = dict(dv_norm=MeanOnline(),
+                           iterations=MeanOnline())
+
+    def solve(self, A, b, M_inv=None, save_stats=True):
+        v_solution, dv_norm, iteration = basis_pursuit_admm(
+            A=A, b=b, lambd=self.lambd,
+            M_inv=M_inv, tol=self.tol,
+            max_iters=self.max_iters,
+            return_stats=True)
+        if save_stats:
+            iteration = torch.tensor(iteration + 1, dtype=torch.float32)
+            self.online['dv_norm'].update(dv_norm.cpu())
+            self.online['iterations'].update(iteration)
+        return v_solution
+
+    def reset_statistics(self):
+        for online in self.online.values():
+            online.reset()
+
+    def __str__(self):
+        return f"{self.__class__.__name__}(lambd={self.lambd}, " \
+               f"tol={self.tol}, max_iters={self.max_iters})"

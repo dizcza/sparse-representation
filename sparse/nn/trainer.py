@@ -15,7 +15,6 @@ Matching Pursuit Trainers.
 import torch
 import torch.nn as nn
 import torch.utils.data
-import torch.utils.data
 
 from mighty.monitor.var_online import MeanOnline
 from mighty.trainer import TrainerAutoencoder
@@ -24,7 +23,6 @@ from mighty.utils.algebra import compute_psnr, compute_sparsity
 from mighty.utils.common import input_from_batch, batch_to_cuda, find_layers
 from mighty.utils.data import DataLoader
 from mighty.utils.stub import OptimizerStub
-
 from sparse.nn.model import Softshrink, MatchingPursuit, LISTA
 
 __all__ = [
@@ -166,7 +164,7 @@ class TrainMatchingPursuitLambda(TrainerAutoencoder):
         def lambda_mean(viz):
             # effective (positive) lambda
             lambd = softshrink.lambd.data.clamp(min=0).cpu()
-            viz.line_update(y=[lambd.mean().item()], opts=dict(
+            viz.line_update(y=[lambd.mean()], opts=dict(
                 xlabel='Epoch',
                 ylabel='Lambda mean',
                 title='Softshrink lambda threshold',
@@ -174,6 +172,31 @@ class TrainMatchingPursuitLambda(TrainerAutoencoder):
 
         if softshrink is not None:
             self.monitor.register_func(lambda_mean)
+
+        solver_online = self.model.solver.online
+
+        def plot_dv_norm(viz):
+            dv_norm = solver_online['dv_norm'].get_mean()
+            viz.line_update(y=[dv_norm], opts=dict(
+                xlabel='Epoch',
+                ylabel='dv_norm (final improvement)',
+                title='Solver convergence/tolerance plot',
+            ))
+
+        def plot_iterations(viz):
+            iterations = solver_online['iterations'].get_mean()
+            viz.line_update(y=[iterations], opts=dict(
+                xlabel='Epoch',
+                ylabel='solver iterations',
+                title='Solver iterations run',
+            ))
+
+        self.monitor.register_func(plot_dv_norm)
+        self.monitor.register_func(plot_iterations)
+
+    def _epoch_finished(self, loss):
+        self.model.solver.reset_statistics()
+        super()._epoch_finished(loss)
 
 
 class TrainLISTA(TrainMatchingPursuitLambda):
@@ -188,12 +211,10 @@ class TrainLISTA(TrainMatchingPursuitLambda):
 
     """
 
-    lambd = 1e-4
-
     def _get_loss(self, batch, output):
         assert isinstance(self.model, LISTA)
         input = input_from_batch(batch)
         latent, reconstructed = output
-        latent_best, _ = self.model.forward_best(input, lambd=self.lambd)
+        latent_best, _ = self.model.forward_best(input)
         loss = self.criterion(latent, latent_best)
         return loss
