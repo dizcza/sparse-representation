@@ -57,7 +57,7 @@ class MatchingPursuit(nn.Module):
         nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
 
     @property
-    def lamdb(self):
+    def lambd(self):
         return self.solver.lambd
 
     def forward(self, x, lambd=None):
@@ -101,8 +101,7 @@ class MatchingPursuit(nn.Module):
 
     def extra_repr(self):
         return f"in_features={self.in_features}, " \
-               f"out_features={self.out_features}, " \
-               f"solver={self.solver}"
+               f"out_features={self.out_features}"
 
 
 class Softshrink(nn.Module):
@@ -224,5 +223,4 @@ class LISTA(nn.Module):
     def extra_repr(self):
         return f"in_features={self.in_features}, " \
                f"out_features={self.out_features}, " \
-               f"n_folds={self.n_folds}, " \
-               f"solver={self.solver}"
+               f"n_folds={self.n_folds}"

@@ -220,20 +220,32 @@ class TrainLISTA(TrainMatchingPursuit):
 
     """
 
-    lambd_as_softshrink = False
-    
+    def __init__(self,
+                 model: nn.Module,
+                 model_reference : nn.Module,
+                 criterion: nn.Module,
+                 data_loader: DataLoader,
+                 optimizer,
+                 scheduler=None,
+                 **kwargs):
+        super().__init__(model, criterion=criterion, data_loader=data_loader,
+                         optimizer=optimizer, scheduler=scheduler, **kwargs)
+        model_reference.train(False)
+        for param in model_reference.parameters():
+            param.requires_grad_(False)
+        self.model_reference = model_reference
+        self.model.solver = self.model_reference.solver
+
     def log_trainer(self):
         super().log_trainer()
-        self.monitor.log(f"lambd_as_softshrink={self.lambd_as_softshrink}")
+        self.monitor.log("Reference model:")
+        self.monitor.log_model(self.model_reference)
 
     def _get_loss(self, batch, output):
         assert isinstance(self.model, LISTA)
         input = input_from_batch(batch)
         latent, reconstructed = output
-        if self.lambd_as_softshrink:
-            lamdb = self.model.soft_shrink.lambd.data.relu().mean().item()
-            self.model.solver.lambd = lamdb
-        latent_best, _ = self.model.forward_best(input)
+        latent_best, _ = self.model_reference(input)
         loss = self.criterion(latent, latent_best)
         return loss
 

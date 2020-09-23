@@ -14,6 +14,7 @@ import torch
 import torch.nn.functional as F
 import warnings
 
+from mighty.models.serialize import SerializableModule
 from mighty.monitor.var_online import MeanOnline
 from mighty.utils.algebra import compute_psnr, compute_sparsity
 
@@ -117,8 +118,11 @@ def basis_pursuit_admm(A, b, lambd, M_inv=None, tol=1e-4, max_iters=100,
     return v_solution
 
 
-class BasisPursuitADMM:
+class BasisPursuitADMM(SerializableModule):
+    state_attr = ['lambd', 'tol', 'max_iters']
+
     def __init__(self, lambd=0.1, tol=1e-4, max_iters=100):
+        super().__init__()
         self.lambd = lambd
         self.tol = tol
         self.max_iters = max_iters
@@ -144,6 +148,6 @@ class BasisPursuitADMM:
         for online in self.online.values():
             online.reset()
 
-    def __str__(self):
-        return f"{self.__class__.__name__}(lambd={self.lambd}, " \
-               f"tol={self.tol}, max_iters={self.max_iters})"
+    def extra_repr(self):
+        return f"lambd={self.lambd}, " \
+               f"tol={self.tol}, max_iters={self.max_iters}"
