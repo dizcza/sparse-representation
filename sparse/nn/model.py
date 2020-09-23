@@ -9,11 +9,12 @@ PyTorch implementation of AutoEncoders that form sparse representations.
 
 """
 
+import math
 import torch
 import torch.nn as nn
 
 from mighty.models.autoencoder import AutoencoderOutput
-from sparse.nn.solver import basis_pursuit_admm
+from sparse.nn.solver import BasisPursuitADMM
 
 __all__ = [
     "MatchingPursuit",
@@ -32,11 +33,9 @@ class MatchingPursuit(nn.Module):
         The num. of input features (X dimension).
     out_features : int
         The dimensionality of the embedding vector Z.
-    lambd : float
-        Sparsity penalty for the :math:`Q_1^\epsilon` problem (see
+    solver : BasisPursuitADMM
+        Matching Pursuit solver for the :math:`Q_1^\epsilon` problem (see
         :func:`sparse.nn.solver.basis_pursuit_admm`).
-    **solver_kwargs
-        Passed to `basis_pursuit_admm` solver.
 
     Notes
     -----
@@ -49,14 +48,17 @@ class MatchingPursuit(nn.Module):
     sparse.nn.solver.basis_pursuit_admm : Basis Matching Pursuit solver,
                                           used in this model
     """
-    def __init__(self, in_features, out_features, lambd=0.2, **solver_kwargs):
+    def __init__(self, in_features, out_features, solver=BasisPursuitADMM()):
         super().__init__()
         self.in_features = in_features
         self.out_features = out_features
-        self.lambd = lambd
-        self.solver_kwargs = solver_kwargs
-        weight = torch.randn(out_features, in_features)
-        self.weight = nn.Parameter(weight, requires_grad=True)
+        self.solver = solver
+        self.weight = nn.Parameter(torch.Tensor(out_features, in_features))
+        nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+
+    @property
+    def lambd(self):
+        return self.solver.lambd
 
     def forward(self, x, lambd=None):
         """
@@ -65,7 +67,11 @@ class MatchingPursuit(nn.Module):
         Parameters
         ----------
         x : (B, C, H, W) torch.Tensor
-            A batch of input images
+            A batch of input images.
+        lambd : float or None
+            If not None, a new solver is created with the given `lambd` to
+            solve this batch `x`. In this case, the solver statistics won't
+            be tracked.
 
         Returns
         -------
@@ -76,24 +82,26 @@ class MatchingPursuit(nn.Module):
         """
         input_shape = x.shape
         if lambd is None:
-            lambd = self.lambd
+            solver = self.solver
+        else:
+            # the statistics won't be tracked
+            solver = BasisPursuitADMM(lambd=lambd, tol=self.solver.tol,
+                                      max_iters=self.solver.max_iters)
         x = x.flatten(start_dim=1)
         with torch.no_grad():
             self.normalize_weight()
-            z = basis_pursuit_admm(A=self.weight.t(), b=x,
-                                         lambd=lambd, **self.solver_kwargs)
+            # save the statistics during testing only
+            z = solver.solve(A=self.weight.t(), b=x)
         decoded = z.matmul(self.weight)
         return AutoencoderOutput(z, decoded.view(*input_shape))
 
     def normalize_weight(self):
-        w_norm = self.weight.norm(p=2, dim=1).unsqueeze(dim=1)
+        w_norm = self.weight.norm(p=2, dim=1, keepdim=True)
         self.weight.div_(w_norm)
 
     def extra_repr(self):
         return f"in_features={self.in_features}, " \
-               f"out_features={self.out_features}, " \
-               f"lambd={self.lambd}, " \
-               f"solver_kwargs={self.solver_kwargs}"
+               f"out_features={self.out_features}"
 
 
 class Softshrink(nn.Module):
@@ -112,7 +120,7 @@ class Softshrink(nn.Module):
         return out
 
     def extra_repr(self):
-        return f"[learnable] n_features={self.lambd.nelement()}"
+        return f"n_features={self.lambd.nelement()}"
 
 
 class LISTA(nn.Module):
@@ -129,6 +137,10 @@ class LISTA(nn.Module):
     n_folds : int
         The num. of recursions to apply to get better convergence of Z.
         Must be greater or equal to 1.
+    solver : BasisPursuitADMM
+        Matching Pursuit solver for the :math:`Q_1^\epsilon` problem (see
+        :func:`sparse.nn.solver.basis_pursuit_admm`). Used only in
+        `forward_best` function.
 
     Notes
     -----
@@ -143,10 +155,14 @@ class LISTA(nn.Module):
        international conference on machine learning (pp. 399-406).
     """
 
-    def __init__(self, in_features, out_features, n_folds=2):
+    def __init__(self, in_features, out_features, n_folds=2,
+                 solver=BasisPursuitADMM()):
         super().__init__()
         assert n_folds >= 1
+        self.in_features = in_features
+        self.out_features = out_features
         self.n_folds = n_folds
+        self.solver = solver
         self.weight_input = nn.Parameter(
             torch.Tensor(out_features, in_features))  # W_e matrix
         self.weight_lateral = nn.Parameter(
@@ -163,9 +179,9 @@ class LISTA(nn.Module):
 
     def reset_parameters(self):
         # kaiming preserves the weights variance norm, compared to randn()
-        nn.init.kaiming_normal_(self.weight_input, a=1)
-        nn.init.kaiming_normal_(self.weight_lateral, a=1)
-        nn.init.uniform_(self.soft_shrink.lambd, a=0.1, b=0.9)
+        nn.init.kaiming_uniform_(self.weight_input, a=math.sqrt(5))
+        nn.init.kaiming_uniform_(self.weight_lateral, a=math.sqrt(5))
+        nn.init.uniform_(self.soft_shrink.lambd, a=0.01, b=0.1)
 
     def forward(self, x):
         """
@@ -193,14 +209,18 @@ class LISTA(nn.Module):
         decoded = z.matmul(self.weight_input)  # (B, In)
         return AutoencoderOutput(z, decoded.view(*input_shape))
 
-    def forward_best(self, x, lambd=0.2, **solver_kwargs):
+    def forward_best(self, x):
         input_shape = x.shape
         with torch.no_grad():
             x = x.flatten(start_dim=1)
-            w_norm = self.weight_input.norm(p=2, dim=1).unsqueeze(dim=1)
+            w_norm = self.weight_input.norm(p=2, dim=1, keepdim=True)
             weight = self.weight_input / w_norm
-            z = basis_pursuit_admm(A=weight.t(), b=x,
-                                   lambd=lambd, **solver_kwargs)
+            z = self.solver.solve(A=weight.t(), b=x)
 
             decoded = z.matmul(weight)  # (B, In)
         return AutoencoderOutput(z, decoded.view(*input_shape))
+
+    def extra_repr(self):
+        return f"in_features={self.in_features}, " \
+               f"out_features={self.out_features}, " \
+               f"n_folds={self.n_folds}"

@@ -15,7 +15,6 @@ Matching Pursuit Trainers.
 import torch
 import torch.nn as nn
 import torch.utils.data
-import torch.utils.data
 
 from mighty.monitor.var_online import MeanOnline
 from mighty.trainer import TrainerAutoencoder
@@ -24,13 +23,12 @@ from mighty.utils.algebra import compute_psnr, compute_sparsity
 from mighty.utils.common import input_from_batch, batch_to_cuda, find_layers
 from mighty.utils.data import DataLoader
 from mighty.utils.stub import OptimizerStub
-
 from sparse.nn.model import Softshrink, MatchingPursuit, LISTA
 
 __all__ = [
     "TestMatchingPursuit",
     "TestMatchingPursuitParameters",
-    "TrainMatchingPursuitLambda",
+    "TrainMatchingPursuit",
     "TrainLISTA"
 ]
 
@@ -141,7 +139,7 @@ class TestMatchingPursuit(TrainerAutoencoder):
         self.timer.batch_id += self.timer.batches_in_epoch
 
 
-class TrainMatchingPursuitLambda(TrainerAutoencoder):
+class TrainMatchingPursuit(TrainerAutoencoder):
     r"""
     Train :code:`MatchingPursuit` or :code:`LISTA` AutoEncoder with
     :code:`LossPenalty` loss function, defined as
@@ -166,7 +164,7 @@ class TrainMatchingPursuitLambda(TrainerAutoencoder):
         def lambda_mean(viz):
             # effective (positive) lambda
             lambd = softshrink.lambd.data.clamp(min=0).cpu()
-            viz.line_update(y=[lambd.mean().item()], opts=dict(
+            viz.line_update(y=[lambd.mean()], opts=dict(
                 xlabel='Epoch',
                 ylabel='Lambda mean',
                 title='Softshrink lambda threshold',
@@ -175,8 +173,40 @@ class TrainMatchingPursuitLambda(TrainerAutoencoder):
         if softshrink is not None:
             self.monitor.register_func(lambda_mean)
 
+        solver_online = self.model.solver.online
 
-class TrainLISTA(TrainMatchingPursuitLambda):
+        def plot_dv_norm(viz):
+            dv_norm = solver_online['dv_norm'].get_mean()
+            viz.line_update(y=[dv_norm], opts=dict(
+                xlabel='Epoch',
+                ylabel='dv_norm (final improvement)',
+                title='Solver convergence',
+            ))
+
+        def plot_iterations(viz):
+            iterations = solver_online['iterations'].get_mean()
+            viz.line_update(y=[iterations], opts=dict(
+                xlabel='Epoch',
+                ylabel='solver iterations',
+                title='Solver iterations run',
+            ))
+
+        self.monitor.register_func(plot_dv_norm)
+        self.monitor.register_func(plot_iterations)
+
+    def _epoch_finished(self, loss):
+        self.model.solver.reset_statistics()
+        super()._epoch_finished(loss)
+
+    def full_forward_pass(self, train=True):
+        # Save convergence statistics for train forward pass only
+        self.model.solver.save_stats = train
+        loss = super().full_forward_pass(train=train)
+        self.model.solver.save_stats = False
+        return loss
+
+
+class TrainLISTA(TrainMatchingPursuit):
     r"""
     Train LISTA with the original loss, defined in the paper as MSE between the
     latent vector Z (forward pass of LISTA NN) and the best possible latent
@@ -186,12 +216,43 @@ class TrainLISTA(TrainMatchingPursuitLambda):
     .. math::
         L(W, X) = \frac{1}{2} \left|\left| Z^* - Z \right|\right|^2
 
+    :code:`TrainLISTA` performs worse than :code:`TrainMatchingPursuit`.
+
     """
+
+    def __init__(self,
+                 model: nn.Module,
+                 model_reference : nn.Module,
+                 criterion: nn.Module,
+                 data_loader: DataLoader,
+                 optimizer,
+                 scheduler=None,
+                 **kwargs):
+        super().__init__(model, criterion=criterion, data_loader=data_loader,
+                         optimizer=optimizer, scheduler=scheduler, **kwargs)
+        model_reference.train(False)
+        for param in model_reference.parameters():
+            param.requires_grad_(False)
+        self.model_reference = model_reference
+        self.model.solver = self.model_reference.solver
+
+    def log_trainer(self):
+        super().log_trainer()
+        self.monitor.log("Reference model:")
+        self.monitor.log_model(self.model_reference)
 
     def _get_loss(self, batch, output):
         assert isinstance(self.model, LISTA)
         input = input_from_batch(batch)
         latent, reconstructed = output
-        latent_best, _ = self.model.forward_best(input)
+        latent_best, _ = self.model_reference(input)
         loss = self.criterion(latent, latent_best)
         return loss
+
+    def _epoch_finished(self, loss):
+        solver_online = self.model.solver.online
+        self.monitor.plot_psnr(solver_online['psnr'].get_mean(),
+                               mode='solver')
+        self.monitor.update_sparsity(solver_online['sparsity'].get_mean(),
+                                     mode='solver')
+        super()._epoch_finished(loss)

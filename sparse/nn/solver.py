@@ -8,18 +8,19 @@ Basis Pursuit (BP) solvers (refer to :ref:`relaxation`) PyTorch API.
 
 """
 
+from collections import defaultdict
+
 import torch
 import torch.nn.functional as F
+import warnings
+
+from mighty.models.serialize import SerializableModule
+from mighty.monitor.var_online import MeanOnline
+from mighty.utils.algebra import compute_psnr, compute_sparsity
 
 __all__ = [
     "basis_pursuit_admm"
 ]
-
-
-def _negligible_improvement(x, x_prev, tol: float) -> torch.BoolTensor:
-    x_norm = x.norm(dim=1)
-    dx_norm = (x - x_prev).norm(dim=1)
-    return dx_norm / x_norm < tol
 
 
 def _reduce(solved, solved_batch, x_solution, x, *args):
@@ -43,7 +44,8 @@ def _reduce(solved, solved_batch, x_solution, x, *args):
     return args_reduced
 
 
-def basis_pursuit_admm(A, b, lambd, M_inv=None, tol=1e-4, max_iters=100):
+def basis_pursuit_admm(A, b, lambd, M_inv=None, tol=1e-4, max_iters=100,
+                       return_stats=False):
     r"""
     Basis Pursuit solver for the :math:`Q_1^\epsilon` problem
 
@@ -86,13 +88,19 @@ def basis_pursuit_admm(A, b, lambd, M_inv=None, tol=1e-4, max_iters=100):
     solved = torch.zeros(batch_size, dtype=torch.bool)
 
     iter_id = 0
+    dv_norm = None
     for iter_id in range(max_iters):
         b_eff = A_dot_b + v - u
         x = b_eff.matmul(M_inv)  # M_inv is already transposed
         # x is of shape (<=B, m_atoms)
         v = F.softshrink(x + u, lambd)
         u = u + x - v
-        solved_batch = _negligible_improvement(v, v_prev, tol=tol)
+        v_norm = v.norm(dim=1)
+        if (v_norm == 0).any():
+            warnings.warn(f"Lambda ({lambd}) is set too large: "
+                          f"the output vector is zero-valued.")
+        dv_norm = (v - v_prev).norm(dim=1) / (v_norm + 1e-9)
+        solved_batch = dv_norm < tol
         v, u, A_dot_b = _reduce(solved, solved_batch, v_solution, v, u,
                                 A_dot_b)
         if v.shape[0] == 0:
@@ -104,4 +112,42 @@ def basis_pursuit_admm(A, b, lambd, M_inv=None, tol=1e-4, max_iters=100):
         assert solved.all()
     v_solution[~solved] = v  # dump unsolved iterations
 
+    if return_stats:
+        return v_solution, dv_norm.mean(), iter_id
+
     return v_solution
+
+
+class BasisPursuitADMM(SerializableModule):
+    state_attr = ['lambd', 'tol', 'max_iters']
+
+    def __init__(self, lambd=0.1, tol=1e-4, max_iters=100):
+        super().__init__()
+        self.lambd = lambd
+        self.tol = tol
+        self.max_iters = max_iters
+        self.online = defaultdict(MeanOnline)
+        self.save_stats = False
+
+    def solve(self, A, b, M_inv=None):
+        v_solution, dv_norm, iteration = basis_pursuit_admm(
+            A=A, b=b, lambd=self.lambd,
+            M_inv=M_inv, tol=self.tol,
+            max_iters=self.max_iters,
+            return_stats=True)
+        if self.save_stats:
+            iteration = torch.tensor(iteration + 1, dtype=torch.float32)
+            self.online['dv_norm'].update(dv_norm.cpu())
+            self.online['iterations'].update(iteration)
+            b_restored = v_solution.matmul(A.t())
+            self.online['psnr'].update(compute_psnr(b, b_restored).cpu())
+            self.online['sparsity'].update(compute_sparsity(v_solution).cpu())
+        return v_solution
+
+    def reset_statistics(self):
+        for online in self.online.values():
+            online.reset()
+
+    def extra_repr(self):
+        return f"lambd={self.lambd}, " \
+               f"tol={self.tol}, max_iters={self.max_iters}"
