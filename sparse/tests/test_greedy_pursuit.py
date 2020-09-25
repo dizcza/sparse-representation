@@ -1,10 +1,10 @@
-import unittest
-
 import numpy as np
+import unittest
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from sklearn.linear_model import orthogonal_mp
 
-from sparse.greedy_pursuit import orthogonal_matching_pursuit as omp
+from sparse.greedy_pursuit import orthogonal_matching_pursuit as omp, \
+    matching_pursuit, thresholding_algorithm
 
 
 class OMPTest(unittest.TestCase):
@@ -31,7 +31,7 @@ class OMPTest(unittest.TestCase):
         assert_array_almost_equal(solution.x, [0., 1.0000116, 0., 1.0100027])
         assert_array_equal(sorted(solution.support), (1, 3))
 
-    def test_unnormalized(self):
+    def test_unnormalized_support(self):
         np.random.seed(28)
         shape = 40, 70
         n_nonzero = 10
@@ -50,6 +50,31 @@ class OMPTest(unittest.TestCase):
         # solutions' x might differ but the support should match
         assert_array_equal(sorted(solution.support),
                            sorted(solution_norm.support))
+
+    def test_reconstruction(self):
+        np.random.seed(28)
+        n_features, n_atoms = 10, 30
+        k0 = 4
+        mat_a = np.random.randn(n_features, n_atoms)
+        mat_a /= np.linalg.norm(mat_a, axis=0)
+        x_true = np.random.randn(n_atoms)
+        x_true[np.random.choice(n_atoms, size=n_atoms - k0,
+                                replace=False)] = 0
+        b_true = mat_a.dot(x_true)
+
+        x_omp = omp(mat_a, b=b_true, n_nonzero_coefs=k0)
+        x_omp_ls = omp(mat_a, b=b_true, n_nonzero_coefs=k0, least_squares=True)
+        x_mp = matching_pursuit(mat_a, b=b_true, n_iters=100)
+        x_mp_weak = matching_pursuit(mat_a, b=b_true, n_iters=100,
+                                     weak_threshold=0.5)
+        x_thr = thresholding_algorithm(mat_a, b=b_true, n_nonzero_coefs=k0)
+
+        x_sklearn = orthogonal_mp(mat_a, b_true, n_nonzero_coefs=k0)
+        assert_array_almost_equal(x_omp_ls.x, x_sklearn)
+
+        for solution in (x_omp, x_omp_ls, x_mp, x_mp_weak, x_thr):
+            b_restored = mat_a.dot(solution.x)
+            assert_array_almost_equal(b_restored, b_true, decimal=1)
 
 
 if __name__ == '__main__':

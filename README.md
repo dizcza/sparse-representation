@@ -43,7 +43,7 @@ https://courses.edx.org/courses/course-v1:IsraelX+236862.1x+3T2019/course/).
 * BasisPursuit dictionary learning (similar to MOD)  
 * Learned Iterative Shrinkage-Thresholding Algorithm (LISTA)
 
-`sparse.nn` module contains PyTorch implementation of the listed above algotihms (see [examples](sparse/examples)).
+`sparse.nn` module contains PyTorch implementation of the listed above algorithms.
 
 ## Quick start example
 
