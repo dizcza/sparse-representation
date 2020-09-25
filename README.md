@@ -2,15 +2,30 @@
 
 Python functions to analyze sparse representations by solving the P0- and P1-problems.
 
-1. P0-epsilon problem: `min_x ||x||_0 s.t. ||Ax - b|| < eps`
-2. P1-epsilon problem: `min_x ||x||_1 s.t. ||Ax - b|| < eps`
+1. P0-epsilon problem: `min_z ||z||_0 s.t. ||Az - x|| < eps`
+2. P1-epsilon problem: `min_z ||z||_1 s.t. ||Az - x|| < eps`
+3. Q1-epsilon problem: `min_z ||Az - x||^2 + λ||z||_1`
+
+where `z` is a sparse representation of the input `x`, and `A` is a dictionary matrix (either fixed or learned).
+
+Documentation is available at https://sparse-representation.readthedocs.io
+
+The theoretical foundations of the implemented functional are in edX course
+[Sparse Representations in Signal and Image Processing](
+https://courses.edx.org/courses/course-v1:IsraelX+236862.1x+3T2019/course/).
+
 
 ## Algorithms
 
-* Coherence of a matrix:
-    * Mutual Coherence
-    * Babbel Function
-    * Spark of a matrix
+### Coherence of a matrix
+
+* Mutual Coherence
+* Babbel Function
+* Spark of a matrix
+
+
+### Solving P0- and P1-epsilon problems with a fixed dictionary
+
 * Greedy algorithms, approximating the P0-problem:
     * Orthogonal Matching Pursuit (OMP)
     * Least Squares OMP (LS-OMP)
@@ -21,13 +36,22 @@ Python functions to analyze sparse representations by solving the P0- and P1-pro
     * Basis Pursuit (L1-relaxation)
     * Basis Pursuit + ADMM
     * Iterative Shrinkage Algorithm (ISTA, Fast ISTA)
-    * Learned Iterative Shrinkage-Thresholding Algorithm (LISTA)
 
-`sparse.nn` module contains PyTorch implementation of Basis Pursuit & LISTA methods.
 
-## Example
+### Dictionary learning
 
-To illustrate an example, we 
+* BasisPursuit dictionary learning (similar to MOD)  
+* Learned Iterative Shrinkage-Thresholding Algorithm (LISTA)
+
+`sparse.nn` module contains PyTorch implementation of the listed above algotihms (see [examples](sparse/examples)).
+
+## Quick start example
+
+### Fixed dictionary
+
+Reproduce with [`edX/finproj/project2_all.py`](edX/finproj/project2_all.py)
+
+To illustrate an example with a fixed dictionary, we 
 
 1) simulate an image `x` of size `n x n`, constructed with bars;
 2) add noise and corrupt the image -> `x_noisy`;
@@ -36,17 +60,18 @@ To illustrate an example, we
 
 ![](edX/finproj/report/reconstructed.png)
 
-### Trainable dictionary matrix
+### Learned dictionary
 
-For `sparse.nn` usage, refer to [examples](sparse/examples).
+Start a Visdom server and run the examples with
 
-## Documentation
+```
+$ python -m visdom.server
+$ python sparse/examples/basis_pursuit_pytorch.py
+```
 
-See https://sparse-representation.readthedocs.io
+Then navigate to localhost:8097 to see the training progress.
 
-The theoretical foundations of these functions are in edX course
-[Sparse Representations in Signal and Image Processing](
-https://courses.edx.org/courses/course-v1:IsraelX+236862.1x+3T2019/course/).
+More examples are at http://85.217.171.57:8097. Choose environments with `MatchingPursuit`.
 
 
 ## Installation
@@ -54,18 +79,7 @@ https://courses.edx.org/courses/course-v1:IsraelX+236862.1x+3T2019/course/).
 ```
 $ git clone https://github.com/dizcza/sparse-representation.git
 $ cd sparse-representation
-$ pip install -e .
+$ pip install -e .[extra]
 ```
 
-### NN module
-
-If you want to install `sparse.nn` module, run `pip install -e .[extra]`.
-
-Start Visdom server and run the examples with
-
-```
-$ python -m visdom.server
-$ python sparse/examples/basis_pursuit_pytorch.py
-```
-
-More examples are at http://85.217.171.57:8097. Choose environments with `MatchingPursuit`.
+Extra requirements install PyTorch for `sparse.nn` module.

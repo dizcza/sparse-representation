@@ -4,7 +4,7 @@ Matching Pursuit Trainers.
 .. autosummary::
    :toctree: toctree/nn
 
-   TrainMatchingPursuitLambda
+   TrainMatchingPursuit
    TrainLISTA
    TestMatchingPursuit
    TestMatchingPursuitParameters
@@ -145,8 +145,20 @@ class TrainMatchingPursuit(TrainerAutoencoder):
     :code:`LossPenalty` loss function, defined as
 
     .. math::
-        L(W, X) = ReconstructionLoss + \lambda \left|\left| Z
-        \right|\right|_1^2
+        L(\boldsymbol{W}, x_i) = \frac{1}{2} \left|\left| x_i -
+        \boldsymbol{W} z_i \right|\right| +
+        \lambda \left|\left| z_i \right|\right|_1^2
+
+    where :math:`\boldsymbol{W} z_i` is a reconstruction of an input vector
+    :math:`x_i`.
+
+    The training process alternates between two steps:
+      1) fix the dictionary matrix :math:`\boldsymbol{W}` and find the
+      coefficients :math:`z_i` with Basis Pursuit;
+
+      2) fix the coefficients :math:`z_i` and update the dictionary
+      :math:`\boldsymbol{W}` with gradient descent.
+
     """
 
     watch_modules = TrainerAutoencoder.watch_modules + (Softshrink,

@@ -19,7 +19,8 @@ from mighty.monitor.var_online import MeanOnline
 from mighty.utils.algebra import compute_psnr, compute_sparsity
 
 __all__ = [
-    "basis_pursuit_admm"
+    "basis_pursuit_admm",
+    "BasisPursuitADMM"
 ]
 
 
