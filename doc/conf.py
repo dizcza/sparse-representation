@@ -55,6 +55,17 @@ autosummary_generate = True
 # don't overwrite our custom toctree/*.rst
 autosummary_generate_overwrite = False
 
+# Suppresses  wrong numpy doc warnings
+# see here https://github.com/phn/pytpm/issues/3#issuecomment-12133978
+numpydoc_show_class_members = False
+
+autodoc_default_options = {
+    'undoc-members': False,
+    'show-inheritance': True,
+    'inherited-members': False,
+    'exclude-members': 'extra_repr, training'
+}
+
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -67,13 +78,3 @@ html_theme = 'alabaster'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 # html_static_path = ['_static']
-
-# Suppresses  wrong numpy doc warnings
-# see here https://github.com/phn/pytpm/issues/3#issuecomment-12133978
-numpydoc_show_class_members = False
-
-autodoc_default_options = {
-    'undoc-members': False,
-    'show-inheritance': False,
-    'inherited-members': False,
-}

@@ -14,7 +14,7 @@ import numpy as np
 from sparse.relaxation.utils import soft_shrinkage, negligible_improvement
 
 
-def ista(A, b, alpha, tol=1e-4, max_iters=100, momentum=0):
+def ista(A, b, lambd, tol=1e-4, max_iters=100, momentum=0):
     r"""
     Iterative Shrinkage Algorithm (ISTA) [1]_ for the :math:`Q_1^\epsilon`
     problem:
@@ -47,14 +47,14 @@ def ista(A, b, alpha, tol=1e-4, max_iters=100, momentum=0):
 
     References
     ----------
-    1. Daubechies, I., Defrise, M., & De Mol, C. (2004). An iterative
+    .. [1] Daubechies, I., Defrise, M., & De Mol, C. (2004). An iterative
        thresholding algorithm for linear inverse problems with a sparsity
        constraint. Communications on Pure and Applied Mathematics: A Journal
        Issued by the Courant Institute of Mathematical Sciences, 57(11),
        1413-1457.
-    2. Beck, A., & Teboulle, M. (2009). A fast iterative shrinkage-thresholding
-       algorithm for linear inverse problems. SIAM journal on imaging sciences,
-       2(1), 183-202.
+    .. [2] Beck, A., & Teboulle, M. (2009). A fast iterative
+       shrinkage-thresholding algorithm for linear inverse problems. SIAM
+       journal on imaging sciences, 2(1), 183-202.
     """
     eigvals = np.linalg.eigvals(A.T.dot(A))
 
@@ -62,14 +62,14 @@ def ista(A, b, alpha, tol=1e-4, max_iters=100, momentum=0):
     # 2) multiplied by '2' because we need L > the-largest-eigval
     eigval_largest = 2 * np.max(np.abs(eigvals))
 
-    alpha_norm = alpha / eigval_largest
+    lambd_norm = lambd / eigval_largest
     m_atoms = A.shape[1]
     x = np.zeros(m_atoms, dtype=np.float32)
     x_prev = x.copy()
     for iter_id in range(max_iters):
         # x_unconstrained is before applying L1 norm constraint
         x_unconstrained = x + A.T.dot(b - A.dot(x)) / eigval_largest
-        x = soft_shrinkage(x_unconstrained, lambd=alpha_norm)
+        x = soft_shrinkage(x_unconstrained, lambd=lambd_norm)
         x = x + momentum * (x - x_prev)  # Fast ISTA
         if negligible_improvement(x, x_prev, tol=tol):
             break

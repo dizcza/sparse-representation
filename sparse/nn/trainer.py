@@ -16,13 +16,13 @@ import torch
 import torch.nn as nn
 import torch.utils.data
 
-from mighty.monitor.var_online import MeanOnline
 from mighty.trainer import TrainerAutoencoder
 from mighty.trainer.trainer import Trainer
-from mighty.utils.algebra import compute_psnr, compute_sparsity
 from mighty.utils.common import input_from_batch, batch_to_cuda, find_layers
 from mighty.utils.data import DataLoader
+from mighty.utils.signal import peak_to_signal_noise_ratio, compute_sparsity
 from mighty.utils.stub import OptimizerStub
+from mighty.utils.var_online import MeanOnline
 from sparse.nn.model import Softshrink, MatchingPursuit, LISTA
 
 __all__ = [
@@ -86,7 +86,8 @@ class TestMatchingPursuitParameters(TrainerAutoencoder):
                     outputs = self.model(input, bmp_param)
                     latent, reconstructed = outputs
                     loss_lambd = self._get_loss(batch, outputs)
-                    psnr_lmdb = compute_psnr(input, reconstructed)
+                    psnr_lmdb = peak_to_signal_noise_ratio(
+                        input, reconstructed)
                     sparsity_lambd = compute_sparsity(latent)
                     loss.append(loss_lambd.cpu())
                     psnr.append(psnr_lmdb.cpu())

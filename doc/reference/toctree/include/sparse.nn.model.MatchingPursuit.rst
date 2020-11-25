@@ -10,3 +10,11 @@
 
    .. autosummary::
       ~MatchingPursuit.forward
+      ~MatchingPursuit.normalize_weight
+
+
+   .. rubric:: Attributes
+
+   .. autosummary::
+
+      ~MatchingPursuit.lambd

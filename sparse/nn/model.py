@@ -58,6 +58,9 @@ class MatchingPursuit(nn.Module):
 
     @property
     def lambd(self):
+        r"""
+        Solver hard/soft threshold :math:`\lambda`.
+        """
         return self.solver.lambd
 
     def forward(self, x, lambd=None):
@@ -96,6 +99,9 @@ class MatchingPursuit(nn.Module):
         return AutoencoderOutput(z, decoded.view(*input_shape))
 
     def normalize_weight(self):
+        """
+        Normalize the pre-synaptic weight sum to ``1.0``.
+        """
         w_norm = self.weight.norm(p=2, dim=1, keepdim=True)
         self.weight.div_(w_norm)
 
@@ -150,8 +156,8 @@ class LISTA(nn.Module):
 
     References
     ----------
-    1. Gregor, K., & LeCun, Y. (2010, June). Learning fast approximations of
-       sparse coding. In Proceedings of the 27th international conference on
+    .. [1] Gregor, K., & LeCun, Y. (2010, June). Learning fast approximations
+       of sparse coding. In Proceedings of the 27th international conference on
        international conference on machine learning (pp. 399-406).
     """
 

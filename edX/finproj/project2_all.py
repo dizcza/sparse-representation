@@ -123,7 +123,7 @@ def display_mondorian(k_estimated):
     plt.axis('off')
 
     from sparse.relaxation import ista
-    b_ista = ista(C.dot(A), b, alpha=0.05)
+    b_ista = ista(C.dot(A), b, lambd=0.05)
     b_ista = A @ b_ista
     plt.subplot(235)
     plt.imshow(b_ista.reshape((n_size, n_size)))

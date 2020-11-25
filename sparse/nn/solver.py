@@ -15,8 +15,8 @@ import torch.nn.functional as F
 import warnings
 
 from mighty.models.serialize import SerializableModule
-from mighty.monitor.var_online import MeanOnline
-from mighty.utils.algebra import compute_psnr, compute_sparsity
+from mighty.utils.signal import peak_to_signal_noise_ratio, compute_sparsity
+from mighty.utils.var_online import MeanOnline
 
 __all__ = [
     "basis_pursuit_admm",
@@ -141,7 +141,8 @@ class BasisPursuitADMM(SerializableModule):
             self.online['dv_norm'].update(dv_norm.cpu())
             self.online['iterations'].update(iteration)
             b_restored = v_solution.matmul(A.t())
-            self.online['psnr'].update(compute_psnr(b, b_restored).cpu())
+            self.online['psnr'].update(peak_to_signal_noise_ratio(
+                b, b_restored).cpu())
             self.online['sparsity'].update(compute_sparsity(v_solution).cpu())
         return v_solution
 
