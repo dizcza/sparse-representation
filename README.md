@@ -75,6 +75,8 @@ More examples are at http://visdom.kyivaigroup.com:8097. Choose environments wit
 
 ![](images/MP_screenshot.png)
 
+The "output sparsity" is the sparsity of the embedding vector from which the original image is reconstructed.
+
 
 ## Installation
 
