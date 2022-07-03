@@ -71,7 +71,9 @@ $ python sparse/examples/basis_pursuit_pytorch.py
 
 Then navigate to localhost:8097 to see the training progress.
 
-More examples are at http://85.217.171.57:8097. Choose environments with `MatchingPursuit`.
+More examples are at http://visdom.kyivaigroup.com:8097. Choose environments with `MatchingPursuit`.
+
+![](images/MP_screenshot.png)
 
 
 ## Installation
