@@ -1,9 +1,14 @@
 # Sparse Representation Algorithms
 
-Python functions to analyze sparse representations by solving the P0- and P1-problems.
+[![CircleCI](https://circleci.com/gh/dizcza/sparse-representation.svg?style=svg)](https://app.circleci.com/pipelines/github/dizcza/sparse-representation)
+[![Coverage](https://coveralls.io/repos/dizcza/sparse-representation/badge.png)](https://coveralls.io/github/dizcza/sparse-representation)
+[![Documentation Status](https://readthedocs.org/projects/sparse-representation/badge/?version=latest)](https://sparse-representation.readthedocs.io/en/latest/?badge=latest)
 
-1. P0-epsilon problem: `min_z ||z||_0 s.t. ||Az - x|| < eps`
-2. P1-epsilon problem: `min_z ||z||_1 s.t. ||Az - x|| < eps`
+
+Python solvers for P0- and P1-problems.
+
+1. P0-epsilon problem: `min_z ||z||_0  s.t. ||Az - x|| < eps`
+2. P1-epsilon problem: `min_z ||z||_1  s.t. ||Az - x|| < eps`
 3. Q1-epsilon problem: `min_z ||Az - x||^2 + λ||z||_1`
 
 where `z` is a sparse representation of the input `x`, and `A` is a dictionary matrix (either fixed or learned).
@@ -71,11 +76,13 @@ $ python sparse/examples/basis_pursuit_pytorch.py
 
 Then navigate to localhost:8097 to see the training progress.
 
-More examples are at http://85.217.171.57:8097/. Choose environments with `MatchingPursuit`.
-
 ![](images/MP_screenshot.png)
 
 The "output sparsity" is the sparsity of the embedding vector from which the original image is reconstructed.
+
+### Demo
+
+More examples are on http://85.217.171.57:8097. Choose environments with `MatchingPursuit`.
 
 
 ## Installation

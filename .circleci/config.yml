@@ -1,0 +1,57 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@0.3.2
+
+jobs:
+  build-conda:
+    executor: python/default
+    steps:
+      - checkout
+      - python/load-cache:
+          key: conda
+      - run:
+         command: |
+           wget -q https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+           bash miniconda.sh -b -p $HOME/miniconda
+           source "$HOME/miniconda/etc/profile.d/conda.sh"
+           conda config --set always_yes yes
+           conda update conda
+           conda create -n sparse python=3.8 scikit-learn tqdm scipy
+           conda activate sparse
+           conda install pytorch torchvision cpuonly -c pytorch
+           
+           pip install git+https://github.com/dizcza/pytorch-mighty.git#egg=pytorch-mighty
+
+           pip list
+           pip -V
+         name: conda-install
+      - run: pip install -r requirements.txt
+      - run: pip install -r requirements-extra.txt
+      - run: pip install coveralls nose2
+      - python/save-cache:
+          key: conda
+      - run:
+          command: |
+            nosetests --with-coverage sparse
+            coveralls
+          name: Test & coverage
+
+  build-pip:
+    executor: python/default
+    steps:
+      - checkout
+      - python/load-cache:
+          key: pip
+      - run: pip install -r requirements.txt
+      - run: pip install -r requirements-extra.txt
+      - run: pip install nose2
+      - python/save-cache:
+          key: pip
+      - run: nose2 sparse
+
+workflows:
+  main:
+    jobs:
+      - build-pip
+      - build-conda

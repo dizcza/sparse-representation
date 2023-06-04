@@ -10,3 +10,4 @@ ignored/
 
 *.pdf
 *.doc*
+.coverage

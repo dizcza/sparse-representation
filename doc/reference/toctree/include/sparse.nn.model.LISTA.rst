@@ -11,6 +11,7 @@
 
    .. autosummary::
       ~LISTA.forward
+      ~LISTA.forward_best
 
 
    .. rubric:: Attributes

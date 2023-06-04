@@ -3,13 +3,22 @@ import unittest
 from numpy.testing import assert_array_almost_equal
 
 from mighty.utils.common import set_seed
-from sparse.nn.solver import basis_pursuit_admm as bp_pytorch, BasisPursuitADMM
 from sparse.relaxation.basis_pursuit import basis_pursuit_admm as bp_numpy
 
 
+try:
+    import mighty
+    MIGHTY_INSTALLED = True
+except ImportError:
+    MIGHTY_INSTALLED = False
+
+
+@unittest.skipUnless(MIGHTY_INSTALLED, reason="pip install pytorch-mighty")
 class TestBasisPursuit(unittest.TestCase):
 
     def test_basis_pursuit_admm_as_numpy(self):
+        from sparse.nn.solver import basis_pursuit_admm as bp_pytorch
+
         set_seed(12)
         n_features, n_atoms = 10, 50
         dictionary = torch.randn(n_features, n_atoms)
@@ -25,6 +34,8 @@ class TestBasisPursuit(unittest.TestCase):
         assert_array_almost_equal(z_pytorch, z_numpy, decimal=tol_decimal)
 
     def test_basis_pursuit_admm_convergence(self):
+        from sparse.nn.solver import BasisPursuitADMM
+
         set_seed(12)
         n_features, n_atoms = 10, 50
         dictionary = torch.randn(n_features, n_atoms)

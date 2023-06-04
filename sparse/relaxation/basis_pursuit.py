@@ -18,7 +18,7 @@ from scipy.optimize import linprog
 from sparse.relaxation.utils import soft_shrinkage, negligible_improvement
 
 
-def basis_pursuit_linprog(A, b, tol=1e-4):
+def basis_pursuit_linprog(A, b, max_iters=100):
     r"""
     Basis Pursuit solver for the :math:`P_1` problem
 
@@ -51,7 +51,7 @@ def basis_pursuit_linprog(A, b, tol=1e-4):
     # The solution is returned in the vector x.
 
     # Set the options to be used by the linprog solver
-    opt = {"tol": tol, "disp": False}
+    opt = {"maxiter": max_iters, "disp": False}
 
     A = np.asarray(A, dtype=np.float32)
     x_dim = A.shape[1]

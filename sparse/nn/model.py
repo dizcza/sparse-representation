@@ -216,6 +216,21 @@ class LISTA(nn.Module):
         return AutoencoderOutput(z, decoded.view(*input_shape))
 
     def forward_best(self, x):
+        """
+        Test function to match the output of the :class:`MatchingPursuit`.
+
+        Parameters
+        ----------
+        x : (B, C, H, W) torch.Tensor
+            A batch of input images
+
+        Returns
+        -------
+        z : (B, Z) torch.Tensor
+            Embedding vectors: sparse representation of `x`.
+        decoded : (B, C, H, W) torch.Tensor
+            Reconstructed `x` from `z`.
+        """
         input_shape = x.shape
         with torch.no_grad():
             x = x.flatten(start_dim=1)
