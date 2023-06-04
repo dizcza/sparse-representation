@@ -33,7 +33,7 @@ jobs:
           key: conda
       - run:
           command: |
-            nosetests --with-coverage sparse
+            nose2 --with-coverage sparse
             coveralls
           name: Test & coverage
 
