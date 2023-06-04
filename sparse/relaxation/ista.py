@@ -1,6 +1,6 @@
 r"""
 Iterative Shrinkage Algorithm (ISTA) is also used to find an approximate
-solution to :math:`\text{P}_0` problem, but Basis Pursuit methods are superior.
+solution to the :math:`\text{P}_0` problem though Basis Pursuit methods are superior.
 
 .. autosummary::
    :toctree: toctree/relaxation/

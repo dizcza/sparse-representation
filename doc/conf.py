@@ -10,6 +10,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+from datetime import datetime
 import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
@@ -18,7 +19,7 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- Project information -----------------------------------------------------
 
 project = 'SparseRepresentation'
-copyright = '2020, Danylo Ulianych'
+copyright = f'2020-{datetime.now().year} Danylo Ulianych'
 author = 'Danylo Ulianych'
 
 # The full version, including alpha/beta/rc tags
@@ -36,7 +37,6 @@ extensions = [
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
-    'sphinx.ext.imgmath',
     'sphinx.ext.viewcode',
     'sphinx.ext.mathjax',
     'numpydoc',
