@@ -86,7 +86,7 @@ def basis_pursuit_admm(A, b, lambd, M_inv=None, tol=1e-4, max_iters=100,
     v_prev = v.clone()
 
     v_solution = v.clone()
-    solved = torch.zeros(batch_size, dtype=torch.bool)
+    solved = torch.zeros(batch_size, dtype=torch.bool, device=v.device)
 
     iter_id = 0
     dv_norm = None

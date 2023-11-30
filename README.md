@@ -2,7 +2,7 @@
 
 [![CircleCI](https://circleci.com/gh/dizcza/sparse-representation.svg?style=svg)](https://app.circleci.com/pipelines/github/dizcza/sparse-representation)
 [![Coverage](https://coveralls.io/repos/dizcza/sparse-representation/badge.png)](https://coveralls.io/github/dizcza/sparse-representation)
-[![Documentation Status](https://readthedocs.org/projects/sparse-representation/badge/?version=latest)](https://sparse-representation.readthedocs.io/en/latest/?badge=latest)
+[![Documentation](https://readthedocs.org/projects/sparse-representation/badge/?version=latest)](https://sparse-representation.readthedocs.io/en/latest/?badge=latest)
 
 
 Python solvers for P0- and P1-problems.
